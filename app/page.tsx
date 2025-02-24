@@ -1,10 +1,5 @@
-"use client";
-import Home from "@/app/home/page";
+import { redirect } from "next/navigation";
 
-export default function HomePage() {
-  return (
-    <div>
-      <Home />
-    </div>
-  );
+export default function Page() {
+  redirect("/home");
 }

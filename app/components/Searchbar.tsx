@@ -1,11 +1,11 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
+import { useState } from "react";
 
 const Searchbar = () => {
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState("");
 
-  return ();
-}
+  return <div>Searchbar</div>;
+};
 
-export default Searchbar
+export default Searchbar;

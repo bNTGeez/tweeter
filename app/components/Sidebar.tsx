@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import Link from "next/link";
 import { House, Search, PenLine, User } from "lucide-react";
@@ -5,10 +6,13 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import CreateTweet from "@/app/components/CreateTweet";
 export default function Sidebar() {
-  const { isSignedIn } = useUser();
+  const { isSignedIn, isLoaded } = useUser();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
 
+  if(!isLoaded){
+    return null;
+  }
   const handleProfile = (): void => {
     if (isSignedIn) {
       router.push("/profile");
@@ -73,6 +77,7 @@ export default function Sidebar() {
       <CreateTweet
         isModalOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onTweetCreated={() => {}}
       />
     </>
   );
