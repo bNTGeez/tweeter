@@ -1,15 +1,22 @@
 import { NextResponse, NextRequest } from "next/server";
 import { connectDB } from "@/backend/utils/mongoose";
 import Tweet from "@/backend/models/tweet.model";
+import User from "@/backend/models/user.model";
 import { currentUser } from "@clerk/nextjs/server";
 
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const user = await currentUser();
-    if (!user) {
+    const clerkUser = await currentUser();
+    if (!clerkUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await User.findOne({ clerkId: clerkUser.id });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const { tweetId } = await req.json();
@@ -22,14 +29,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tweet not found" }, { status: 404 });
     }
 
-    const liked = tweet.likes.includes(user.id);
+    const liked = tweet.likes.includes(user._id);
 
     if (liked) {
       // if liked remove user id
-      tweet.likes = tweet.likes.filter((id: string) => id !== user.id);
+      tweet.likes = tweet.likes.filter(
+        (id: String) => id.toString() !== user._id.toString()
+      );
     } else {
       // if not liked add user id
-      tweet.likes.push(user.id);
+      tweet.likes.push(user._id);
     }
 
     await tweet.save();
@@ -47,6 +56,42 @@ export async function POST(req: NextRequest) {
       {
         status: 500,
       }
+    );
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    await connectDB();
+    const clerkUser = await currentUser();
+    let userId = null;
+    if (clerkUser) {
+      const user = await User.findOne({ clerkId: clerkUser.id });
+      userId = user?._id;
+    }
+
+    const tweets = await Tweet.find()
+      .populate({
+        path: "author",
+        select: "username profilePhoto",
+      })
+      .sort({ createdAt: -1 });
+
+    const tweetsWithLikeInfo = tweets.map((tweet) => ({
+      ...tweet.toObject(),
+      isLikedByUser: userId
+        ? tweet.likes.some((id: String) => id.toString() === userId.toString())
+        : false,
+      likesCount: tweet.likes.length,
+    }));
+
+    return NextResponse.json({ tweets: tweetsWithLikeInfo }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: "Failed to fetch tweets",
+      },
+      { status: 500 }
     );
   }
 }

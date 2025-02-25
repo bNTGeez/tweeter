@@ -10,7 +10,7 @@ function UserContent() {
 
   const fetchTweets = async () => {
     try {
-      const response = await fetch("/api/tweet");
+      const response = await fetch("/api/tweetLike");
       const data = await response.json();
       setTweets(data.tweets);
     } catch (error) {
@@ -25,10 +25,12 @@ function UserContent() {
   return (
     <div className="flex flex-col items-center p-8 h-screen bg-slate-100">
       <div className="w-full max-w-xl">
-        <span className="text-3xl font-bold text-slate-800 mb-8">Tweets</span>
+        <span className="text-3xl font-bold text-slate-800 block mb-8">
+          Tweets
+        </span>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg mb-4"
+          className="w-full bg-blue-500 text-white px-4 py-3 rounded-lg mb-8"
         >
           Create Tweet
         </button>
@@ -38,13 +40,16 @@ function UserContent() {
           onTweetCreated={fetchTweets}
         />
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {tweets.map((tweet: any) => (
             <Tweet
               key={tweet._id}
+              tweetId={tweet._id}
               tweet={tweet.content}
               username={tweet.author?.username || "Unknown User"}
               createdAt={tweet.createdAt}
+              initialLikes={tweet.likes?.length || 0}
+              isLikedByUser={tweet.isLikedByUser}
             />
           ))}
         </div>
