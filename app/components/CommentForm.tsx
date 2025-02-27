@@ -57,13 +57,23 @@ const CommentForm = ({
   };
 
   return (
-    <div>
-      <Modal open={isModalOpen} onClose={onClose}>
-        <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg p-4 w-[600px]">
+    <div onClick={(e) => e.stopPropagation()}>
+      <Modal
+        open={isModalOpen}
+        onClose={onClose}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg p-4 w-[600px]"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex flex-row gap-4">
             <X
-              onClick={onClose}
-              className="cursor-pointer hover: text-gray-500"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="cursor-pointer hover:text-gray-500"
             />
             <TextField
               label="Reply..."
@@ -97,7 +107,10 @@ const CommentForm = ({
                 padding: "4px 16px",
               }}
               disabled={comment.length === 0}
-              onClick={handleSubmit}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSubmit();
+              }}
             >
               Reply
             </Button>

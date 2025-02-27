@@ -23,7 +23,7 @@ function UserContent() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center p-8 h-screen bg-slate-100">
+    <div className="flex flex-col items-center p-8 h-screen bg-slate-100 overflow-auto">
       <div className="w-full max-w-xl">
         <span className="text-3xl font-bold text-slate-800 block mb-8">
           Tweets
@@ -52,6 +52,7 @@ function UserContent() {
               initialComment={tweet.comments?.length || 0}
               isLikedByUser={tweet.isLikedByUser}
               userId={tweet.author?._id}
+              profilePhoto={tweet.author?.profilePhoto}
             />
           ))}
         </div>

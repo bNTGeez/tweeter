@@ -6,6 +6,7 @@ import { MessageCircle } from "lucide-react";
 import CommentForm from "./CommentForm";
 import Comment from "./Comment";
 import { useRouter } from "next/navigation";
+import defaultAvatar from "@/public/default-avatar.png";
 
 interface TweetProps {
   tweet: string;
@@ -16,6 +17,7 @@ interface TweetProps {
   initialComment: number;
   isLikedByUser: boolean;
   userId?: string;
+  profilePhoto?: string;
 }
 
 interface CommentType {
@@ -38,6 +40,7 @@ export default function Tweet({
   initialComment = 0,
   isLikedByUser = false,
   userId,
+  profilePhoto,
 }: TweetProps) {
   const [likes, setLikes] = useState(initialLikes);
   const [isLiked, setIsLiked] = useState(isLikedByUser);
@@ -56,10 +59,11 @@ export default function Tweet({
   };
 
   const handleTweet = async (e: React.MouseEvent) => {
-    e.preventDefault();
+    e.stopPropagation();
     router.push(`/${username}/status/${tweetId}`);
   };
-  const handleLike = async () => {
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       const response = await fetch("/api/tweetLike", {
         method: "POST",
@@ -78,37 +82,29 @@ export default function Tweet({
     }
   };
 
-  const handleCommentClick = async () => {
-    setShowComments(!showComments);
-
-    if (!showComments && comments.length === 0) {
-      try {
-        const response = await fetch(`/api/comments?tweetId=${tweetId} `);
-        const data = await response.json();
-        if (response.ok) {
-          setComments(data.comments);
-        }
-      } catch (error) {
-        console.error("Error fetching comments:", error);
-      }
-    }
+  const handleCommentClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsCommentModalOpen(true);
   };
 
   const handleCommentAdded = (newComment: CommentType) => {
+    setIsCommentModalOpen(false);
+    setShowComments(true);
     setComments((prevComments) => [newComment, ...prevComments]);
     setCommentCount((prev) => prev + 1);
-    setIsCommentModalOpen(false);
   };
 
   return (
-    <div
-      className="bg-slate-100 rounded-lg shadow-md p-6 max-w-2xl"
-      onClick={handleTweet}
-    >
-      <div className="flex items-center space-x-2 mb-4">
+    <div className="bg-white p-6 w-full" onClick={handleTweet}>
+      <div className="flex items-start space-x-3 mb-4">
+        <img
+          src={profilePhoto || defaultAvatar.src}
+          alt={username}
+          className="w-10 h-10 rounded-full object-cover"
+        />
         <div className="flex flex-col">
           <span className="font-semibold text-slate-800">{username}</span>
-          <p className="text-slate-800">{tweet}</p>
+          <p className="text-slate-800 mt-1">{tweet}</p>
         </div>
       </div>
       <div className="flex flex-row items-center space-x-8">
