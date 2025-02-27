@@ -49,7 +49,9 @@ function UserContent() {
               username={tweet.author?.username || "Unknown User"}
               createdAt={tweet.createdAt}
               initialLikes={tweet.likes?.length || 0}
+              initialComment={tweet.comments?.length || 0}
               isLikedByUser={tweet.isLikedByUser}
+              userId={tweet.author?._id}
             />
           ))}
         </div>

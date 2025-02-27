@@ -56,6 +56,13 @@ export async function GET() {
         path: "author",
         select: "username profilePhoto",
       })
+      .populate({
+        path: "comments",
+        populate: {
+          path: "author",
+          select: "username profilePhoto",
+        },
+      })
       .sort({ createdAt: -1 });
 
     console.log("Fetched tweets:", tweets);

@@ -1,4 +1,4 @@
-import mongoose, { Document, mongo } from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 interface IUser extends Document {
   clerkId: string;
