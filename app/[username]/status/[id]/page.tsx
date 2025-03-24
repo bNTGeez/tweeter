@@ -10,8 +10,8 @@ import { format } from "date-fns";
 export default function TweetStatusPage() {
   const [tweet, setTweet] = useState<any>(null);
   const params = useParams();
-  const username = params.username 
-  const tweetId = params.id
+  const username = params.username;
+  const tweetId = params.id;
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "h:mm a · MMM d, yyyy");

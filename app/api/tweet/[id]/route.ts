@@ -49,6 +49,8 @@ export async function DELETE(
   try {
     await connectDB();
     const clerkUser = await currentUser();
+    const params = await context.params;
+    const id = params.id;
 
     if (!clerkUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -58,9 +60,6 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-
-    const params = await context.params;
-    const id = params.id;
 
     const tweet = await Tweet.findById(id);
     if (!tweet) {

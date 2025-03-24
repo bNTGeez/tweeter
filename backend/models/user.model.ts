@@ -9,6 +9,8 @@ interface IUser extends Document {
   bio?: string;
   auth: boolean;
   tweets: mongoose.Types.ObjectId[]; // array of tweets
+  followers: mongoose.Types.ObjectId[]; // array of users following this user
+  following: mongoose.Types.ObjectId[]; // array of users this user follows
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +52,18 @@ const userSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Tweet",
+      },
+    ],
+    followers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    following: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
       },
     ],
   },

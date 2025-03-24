@@ -5,17 +5,19 @@ import { House, Search, PenLine, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import CreateTweet from "@/app/components/CreateTweet";
+
 export default function Sidebar() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn, isLoaded, user } = useUser();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
 
-  if(!isLoaded){
+  if (!isLoaded) {
     return null;
   }
+
   const handleProfile = (): void => {
-    if (isSignedIn) {
-      router.push("/profile");
+    if (isSignedIn && user?.username) {
+      router.push(`/${user.username}`);
     } else {
       router.push("auth/sign-in");
     }

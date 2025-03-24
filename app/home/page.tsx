@@ -63,7 +63,6 @@ function UserContent() {
               isLikedByUser={tweet.isLikedByUser}
               userId={tweet.author?._id}
               profilePhoto={tweet.author?.profilePhoto}
-              onTweetDeleted={fetchTweets}
             />
           ))}
         </div>

@@ -1,6 +1,6 @@
 "use client";
 import { format } from "date-fns";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Heart, MoreHorizontal, Edit, Trash, X } from "lucide-react";
 import { MessageCircle } from "lucide-react";
 import CommentForm from "./CommentForm";
@@ -34,6 +34,7 @@ interface CommentType {
   author: {
     username: string;
     _id: string;
+    profilePhoto?: string;
   };
   createdAt: string;
   likes: string[];
@@ -61,11 +62,36 @@ export default function Tweet({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const router = useRouter();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsLiked(isLikedByUser);
     setLikes(initialLikes);
   }, [isLikedByUser, initialLikes]);
+
+  // Add click outside listener to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        showDropdown
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDropdown]);
+
+  useEffect(() => {
+    if (showComments) {
+      fetchComments();
+    }
+  }, [showComments, tweetId]);
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "h:mm a · MMM d, yyyy");
@@ -93,7 +119,7 @@ export default function Tweet({
       if (pathParts.includes("status")) {
         router.push("/home");
       } else {
-        // refreshes tweet list 
+        // refreshes tweet list
         onTweetDeleted?.();
       }
     } catch (error) {
@@ -105,6 +131,11 @@ export default function Tweet({
   const handleTweet = async (e: React.MouseEvent) => {
     e.stopPropagation();
     router.push(`/${username}/status/${tweetId}`);
+  };
+
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/${username}`);
   };
 
   const handleLike = async (e: React.MouseEvent) => {
@@ -139,69 +170,90 @@ export default function Tweet({
     setCommentCount((prev) => prev + 1);
   };
 
+  const fetchComments = async () => {
+    try {
+      const response = await fetch(`/api/tweet/${tweetId}/comments`);
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data.comments);
+      }
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+  };
+
+  const handleCommentDeleted = () => {
+    fetchComments();
+    setCommentCount((prev) => Math.max(prev - 1, 0));
+  };
+
   return (
     <>
-      <div className="bg-white p-6 w-full" onClick={handleTweet}>
+      <div className="bg-white p-6 w-full relative" onClick={handleTweet}>
+        <div ref={dropdownRef} className="absolute top-6 right-6">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDropdown(!showDropdown);
+            }}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+          >
+            <MoreHorizontal size={20} className="text-gray-500" />
+          </button>
+
+          {showDropdown && (
+            <div className="absolute right-0 top-full mt-2 flex flex-col gap-2 bg-white rounded-xl shadow-lg border border-gray-200 z-50 p-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDropdown(false);
+                  handleEdit();
+                }}
+                className="flex items-center gap-2 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+              >
+                <div className="p-2 bg-gray-100 rounded-lg">
+                  <Edit size={18} className="text-gray-600" />
+                </div>
+                <span className="pr-4 font-medium text-gray-700">Edit</span>
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDropdown(false);
+                  setShowDeleteDialog(true);
+                }}
+                className="flex items-center gap-2 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+              >
+                <div className="p-2 bg-red-50 rounded-lg">
+                  <Trash size={18} className="text-red-600" />
+                </div>
+                <span className="pr-4 font-medium text-red-600">Delete</span>
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="flex items-start space-x-3 mb-4">
           <img
             src={profilePhoto || defaultAvatar.src}
             alt={username}
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-10 h-10 rounded-full object-cover cursor-pointer"
+            onClick={handleProfileClick}
           />
-          <div className="flex flex-col">
-            <div className="flex flex-row items-center justify-between">
-              <span className="font-semibold text-slate-800">{username}</span>
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowDropdown(!showDropdown);
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
-                >
-                  <MoreHorizontal size={20} className="text-gray-500" />
-                </button>
-
-                {showDropdown && (
-                  <div className="absolute right-0 top-full mt-2 flex flex-col gap-2 bg-white rounded-xl shadow-lg border border-gray-200 z-50 p-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowDropdown(false);
-                        handleEdit();
-                      }}
-                      className="flex items-center gap-2 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                    >
-                      <div className="p-2 bg-gray-100 rounded-lg">
-                        <Edit size={18} className="text-gray-600" />
-                      </div>
-                      <span className="pr-4 font-medium text-gray-700">
-                        Edit
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowDropdown(false);
-                        setShowDeleteDialog(true);
-                      }}
-                      className="flex items-center gap-2 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                    >
-                      <div className="p-2 bg-red-50 rounded-lg">
-                        <Trash size={18} className="text-red-600" />
-                      </div>
-                      <span className="pr-4 font-medium text-red-600">
-                        Delete
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
+          <div className="flex flex-col flex-grow">
+            <div className="flex items-center">
+              <span
+                className="font-semibold text-slate-800 cursor-pointer hover:underline"
+                onClick={handleProfileClick}
+              >
+                {username}
+              </span>
             </div>
             <p className="text-slate-800 mt-1">{tweet}</p>
           </div>
         </div>
+
         <div className="flex flex-row items-center space-x-8">
           <div className="flex flex-row items-center space-x-1">
             <button onClick={handleCommentClick}>
@@ -227,6 +279,7 @@ export default function Tweet({
             {formatDate(createdAt)}
           </span>
         </div>
+
         <CommentForm
           isModalOpen={isCommentModalOpen}
           tweetId={tweetId}
@@ -245,6 +298,10 @@ export default function Tweet({
                 createdAt={comment.createdAt}
                 initialLikes={comment.likes?.length || 0}
                 isLikedByUser={userId ? comment.likes?.includes(userId) : false}
+                profilePhoto={comment.author?.profilePhoto}
+                userId={userId}
+                tweetId={tweetId}
+                onCommentDeleted={handleCommentDeleted}
               />
             ))}
           </div>
