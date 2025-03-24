@@ -1,12 +1,19 @@
 "use client";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
-import { Heart } from "lucide-react";
+import { Heart, MoreHorizontal, Edit, Trash, X } from "lucide-react";
 import { MessageCircle } from "lucide-react";
 import CommentForm from "./CommentForm";
 import Comment from "./Comment";
 import { useRouter } from "next/navigation";
 import defaultAvatar from "@/public/default-avatar.png";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+} from "@mui/material";
 
 interface TweetProps {
   tweet: string;
@@ -18,6 +25,7 @@ interface TweetProps {
   isLikedByUser: boolean;
   userId?: string;
   profilePhoto?: string;
+  onTweetDeleted?: () => void;
 }
 
 interface CommentType {
@@ -41,6 +49,7 @@ export default function Tweet({
   isLikedByUser = false,
   userId,
   profilePhoto,
+  onTweetDeleted,
 }: TweetProps) {
   const [likes, setLikes] = useState(initialLikes);
   const [isLiked, setIsLiked] = useState(isLikedByUser);
@@ -48,7 +57,11 @@ export default function Tweet({
   const [comments, setComments] = useState<CommentType[]>([]);
   const [commentCount, setCommentCount] = useState(initialComment);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const router = useRouter();
+
   useEffect(() => {
     setIsLiked(isLikedByUser);
     setLikes(initialLikes);
@@ -58,10 +71,42 @@ export default function Tweet({
     return format(new Date(dateString), "h:mm a · MMM d, yyyy");
   };
 
+  const handleEdit = () => {};
+
+  const handleDelete = async () => {
+    setDeleteError("");
+    try {
+      const response = await fetch(`/api/tweet/${tweetId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setDeleteError(data.error || "Failed to delete tweet");
+        return;
+      }
+
+      setShowDeleteDialog(false);
+
+      // If we're on a status page go to home page
+      const pathParts = window.location.pathname.split("/");
+      if (pathParts.includes("status")) {
+        router.push("/home");
+      } else {
+        // refreshes tweet list 
+        onTweetDeleted?.();
+      }
+    } catch (error) {
+      console.error("Error deleting tweet:", error);
+      setDeleteError("Failed to delete tweet");
+    }
+  };
+
   const handleTweet = async (e: React.MouseEvent) => {
     e.stopPropagation();
     router.push(`/${username}/status/${tweetId}`);
   };
+
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -95,63 +140,152 @@ export default function Tweet({
   };
 
   return (
-    <div className="bg-white p-6 w-full" onClick={handleTweet}>
-      <div className="flex items-start space-x-3 mb-4">
-        <img
-          src={profilePhoto || defaultAvatar.src}
-          alt={username}
-          className="w-10 h-10 rounded-full object-cover"
-        />
-        <div className="flex flex-col">
-          <span className="font-semibold text-slate-800">{username}</span>
-          <p className="text-slate-800 mt-1">{tweet}</p>
-        </div>
-      </div>
-      <div className="flex flex-row items-center space-x-8">
-        <div className="flex flex-row items-center space-x-1">
-          <button onClick={handleCommentClick}>
-            <MessageCircle size={24} />
-          </button>
-          <span>{commentCount}</span>
-        </div>
-        <div className="flex flex-row items-center space-x-1 hover:text-red-500 transition-colors">
-          <button
-            onClick={handleLike}
-            className="hover:text-red-500 transition-colors"
-          >
-            <Heart
-              size={24}
-              className={`${
-                isLiked ? "fill-red-500 text-red-500" : "text-slate-500"
-              }`}
-            />
-          </button>
-          <span>{likes}</span>
-        </div>
-        <span className="text-sm text-slate-500">{formatDate(createdAt)}</span>
-      </div>
-      <CommentForm
-        isModalOpen={isCommentModalOpen}
-        tweetId={tweetId}
-        onClose={() => setIsCommentModalOpen(false)}
-        onCommentAdded={handleCommentAdded}
-      />
+    <>
+      <div className="bg-white p-6 w-full" onClick={handleTweet}>
+        <div className="flex items-start space-x-3 mb-4">
+          <img
+            src={profilePhoto || defaultAvatar.src}
+            alt={username}
+            className="w-10 h-10 rounded-full object-cover"
+          />
+          <div className="flex flex-col">
+            <div className="flex flex-row items-center justify-between">
+              <span className="font-semibold text-slate-800">{username}</span>
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDropdown(!showDropdown);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+                >
+                  <MoreHorizontal size={20} className="text-gray-500" />
+                </button>
 
-      {showComments && (
-        <div className="mt-4">
-          {comments.map((comment: CommentType) => (
-            <Comment
-              key={comment._id}
-              commentId={comment._id}
-              comment={comment.content}
-              username={comment.author.username}
-              createdAt={comment.createdAt}
-              initialLikes={comment.likes?.length || 0}
-              isLikedByUser={userId ? comment.likes?.includes(userId) : false}
-            />
-          ))}
+                {showDropdown && (
+                  <div className="absolute right-0 top-full mt-2 flex flex-col gap-2 bg-white rounded-xl shadow-lg border border-gray-200 z-50 p-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDropdown(false);
+                        handleEdit();
+                      }}
+                      className="flex items-center gap-2 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                    >
+                      <div className="p-2 bg-gray-100 rounded-lg">
+                        <Edit size={18} className="text-gray-600" />
+                      </div>
+                      <span className="pr-4 font-medium text-gray-700">
+                        Edit
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDropdown(false);
+                        setShowDeleteDialog(true);
+                      }}
+                      className="flex items-center gap-2 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                    >
+                      <div className="p-2 bg-red-50 rounded-lg">
+                        <Trash size={18} className="text-red-600" />
+                      </div>
+                      <span className="pr-4 font-medium text-red-600">
+                        Delete
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <p className="text-slate-800 mt-1">{tweet}</p>
+          </div>
         </div>
-      )}
-    </div>
+        <div className="flex flex-row items-center space-x-8">
+          <div className="flex flex-row items-center space-x-1">
+            <button onClick={handleCommentClick}>
+              <MessageCircle size={24} />
+            </button>
+            <span>{commentCount}</span>
+          </div>
+          <div className="flex flex-row items-center space-x-1 hover:text-red-500 transition-colors">
+            <button
+              onClick={handleLike}
+              className="hover:text-red-500 transition-colors"
+            >
+              <Heart
+                size={24}
+                className={`${
+                  isLiked ? "fill-red-500 text-red-500" : "text-slate-500"
+                }`}
+              />
+            </button>
+            <span>{likes}</span>
+          </div>
+          <span className="text-sm text-slate-500">
+            {formatDate(createdAt)}
+          </span>
+        </div>
+        <CommentForm
+          isModalOpen={isCommentModalOpen}
+          tweetId={tweetId}
+          onClose={() => setIsCommentModalOpen(false)}
+          onCommentAdded={handleCommentAdded}
+        />
+
+        {showComments && (
+          <div className="mt-4">
+            {comments.map((comment: CommentType) => (
+              <Comment
+                key={comment._id}
+                commentId={comment._id}
+                comment={comment.content}
+                username={comment.author.username}
+                createdAt={comment.createdAt}
+                initialLikes={comment.likes?.length || 0}
+                isLikedByUser={userId ? comment.likes?.includes(userId) : false}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Dialog
+        open={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        aria-labelledby="delete-dialog-title"
+      >
+        <DialogTitle id="delete-dialog-title">Delete Tweet</DialogTitle>
+        <DialogContent>
+          <p>
+            Are you sure you want to delete this tweet? This action cannot be
+            undone.
+          </p>
+          {deleteError && <p className="text-red-500 mt-2">{deleteError}</p>}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setShowDeleteDialog(false)}
+            sx={{ color: "#475569" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDelete}
+            sx={{
+              backgroundColor: "#EF4444",
+              color: "white",
+              "&:hover": {
+                backgroundColor: "#DC2626",
+              },
+            }}
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

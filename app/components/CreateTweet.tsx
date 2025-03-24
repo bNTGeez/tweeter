@@ -15,15 +15,19 @@ const CreateTweet = ({
   onTweetCreated,
 }: CreateTweetProps) => {
   const [tweet, setTweet] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!isModalOpen) {
       setTweet("");
+      setError("");
     }
   }, [isModalOpen]);
 
   const handleSubmit = async () => {
+
     try {
+      setError("");
       const response = await fetch("/api/tweet", {
         method: "POST",
         headers: {
@@ -31,15 +35,19 @@ const CreateTweet = ({
         },
         body: JSON.stringify({ content: tweet }),
       });
+
+      const data = await response.json();
+
       if (response.ok) {
         setTweet("");
         onClose();
         onTweetCreated?.();
       } else {
-        throw new Error("Failed to create tweet");
+        setError(data.error || "Failed to create tweet");
       }
     } catch (error) {
       console.error("Error creating tweet:", error);
+      setError("Failed to create tweet. Please try again.");
     }
   };
 

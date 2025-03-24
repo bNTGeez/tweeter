@@ -4,9 +4,14 @@ import Sidebar from "@/app/components/Sidebar";
 import Tweet from "@/app/components/Tweet";
 import Footer from "@/app/components/Footer";
 import CreateTweet from "../components/CreateTweet";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+
 function UserContent() {
   const [tweets, setTweets] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useUser();
+  const router = useRouter();
 
   const fetchTweets = async () => {
     try {
@@ -29,7 +34,12 @@ function UserContent() {
           Tweets
         </span>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            if (!user) {
+              router.push("/auth/sign-in");
+            }
+            setIsModalOpen(true);
+          }}
           className="w-full bg-blue-500 text-white px-4 py-3 rounded-lg mb-8"
         >
           Create Tweet
@@ -53,6 +63,7 @@ function UserContent() {
               isLikedByUser={tweet.isLikedByUser}
               userId={tweet.author?._id}
               profilePhoto={tweet.author?.profilePhoto}
+              onTweetDeleted={fetchTweets}
             />
           ))}
         </div>

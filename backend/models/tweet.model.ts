@@ -8,6 +8,8 @@ interface ITweet extends Document {
   updatedAt: Date;
 }
 
+import "./comment.model";
+
 const tweetSchema = new mongoose.Schema(
   {
     content: {
@@ -29,8 +31,8 @@ const tweetSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Comment",
-      }
-    ]
+      },
+    ],
   },
   {
     timestamps: true,

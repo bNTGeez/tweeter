@@ -1,22 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import Tweet from "@/app/components/Tweet";
 import Sidebar from "@/app/components/Sidebar";
 import Comment from "@/app/components/Comment";
 import Footer from "@/app/components/Footer";
 import { format } from "date-fns";
 
-interface PageProps {
-  params: {
-    username: string;
-    id: string;
-  };
-}
-
-const TweetStatusPage = ({ params }: PageProps) => {
+export default function TweetStatusPage() {
   const [tweet, setTweet] = useState<any>(null);
-
-  const { username, id: tweetId } = params;
+  const params = useParams();
+  const username = params.username 
+  const tweetId = params.id
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "h:mm a · MMM d, yyyy");
@@ -25,7 +20,7 @@ const TweetStatusPage = ({ params }: PageProps) => {
   useEffect(() => {
     const fetchTweet = async () => {
       try {
-        const response = await fetch(`/api/tweet/${params.id}`);
+        const response = await fetch(`/api/tweet/${tweetId}`);
         const data = await response.json();
         setTweet(data.tweet);
       } catch (error) {
@@ -55,9 +50,10 @@ const TweetStatusPage = ({ params }: PageProps) => {
               userId={tweet.userId}
               profilePhoto={tweet.author?.profilePhoto}
             />
-            <div className="border-t border-slate-200 ">
+            <div className="border-t border-slate-200">
               {tweet.comments.map((comment: any) => (
                 <Comment
+                  key={comment._id}
                   comment={comment.content}
                   username={comment.author.username}
                   createdAt={comment.createdAt}
@@ -73,6 +69,4 @@ const TweetStatusPage = ({ params }: PageProps) => {
       </div>
     </div>
   );
-};
-
-export default TweetStatusPage;
+}
