@@ -7,6 +7,7 @@ import { useUser, SignOutButton } from "@clerk/nextjs";
 import defaultAvatar from "@/public/default-avatar.png";
 import { Dialog, DialogTitle, DialogContent } from "@mui/material";
 import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 
 interface TweetType {
   _id: string;
@@ -182,119 +183,147 @@ export default function UserProfile() {
   }, [username, isSignedIn, currentUser]);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex flex-row h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 border-l border-r border-gray-200 max-w-2xl">
-        <div className="p-4 border-b border-gray-200">
-          <h1 className="text-xl font-bold">Profile</h1>
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center h-48">
-            <p>Loading profile...</p>
-          </div>
-        ) : error ? (
-          <div className="p-4 text-red-500">{error}</div>
-        ) : (
-          <>
+      <div className="flex-1 overflow-y-auto">
+        <div className="w-[800px] px-4 mx-auto py-4">
+          <div className="border border-gray-200">
             <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <img
-                    src={profileUser?.profilePhoto || defaultAvatar.src}
-                    alt={profileUser?.username || String(username)}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                  <div>
-                    <span className="flex items-center gap-4">
-                      <h2 className="text-xl font-bold">
-                        {profileUser?.username || String(username)}
-                      </h2>
-                      {isSignedIn && currentUser?.username !== username && (
-                        <button
-                          onClick={handleFollow}
-                          className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
-                            isFollowing
-                              ? "bg-white border border-gray-300 text-black hover:bg-gray-50"
-                              : "bg-blue-500 text-white hover:bg-blue-600"
-                          }`}
-                        >
-                          {isFollowing ? "Following" : "Follow"}
-                        </button>
-                      )}
-                    </span>
-                    <div className="flex gap-4 text-gray-500">
-                      <span>{tweets.length} tweets</span>
-                      <span
-                        className="cursor-pointer hover:underline"
-                        onClick={() => setShowFollowers(true)}
-                      >
-                        {profileUser?.followersCount ||
-                          profileUser?.followers?.length ||
-                          0}{" "}
-                        followers
-                      </span>
-                      <span
-                        className="cursor-pointer hover:underline"
-                        onClick={() => setShowFollowing(true)}
-                      >
-                        {profileUser?.followingCount ||
-                          profileUser?.following?.length ||
-                          0}{" "}
-                        following
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                {isSignedIn && currentUser?.username === username && (
-                  <SignOutButton>
-                    <button className="px-4 py-1.5 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600">
-                      Sign Out
-                    </button>
-                  </SignOutButton>
-                )}
-              </div>
-              {profileUser?.bio && (
-                <p className="mt-4 text-gray-700">{profileUser.bio}</p>
-              )}
+              <h1 className="text-xl font-bold">Profile</h1>
             </div>
 
-            <div>
-              {tweets.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  This user hasn't tweeted yet.
+            {loading ? (
+              <div className="flex justify-center items-center h-48">
+                <p>Loading profile...</p>
+              </div>
+            ) : error ? (
+              <div className="p-4 text-red-500">{error}</div>
+            ) : (
+              <>
+                <div className="p-4 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <img
+                        src={profileUser?.profilePhoto || defaultAvatar.src}
+                        alt={profileUser?.username || String(username)}
+                        className="w-16 h-16 rounded-full object-cover"
+                      />
+                      <div>
+                        <span className="flex items-center gap-4">
+                          <h2 className="text-xl font-bold">
+                            {profileUser?.username || String(username)}
+                          </h2>
+                          {isSignedIn && currentUser?.username !== username && (
+                            <button
+                              onClick={handleFollow}
+                              className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
+                                isFollowing
+                                  ? "bg-white border border-gray-300 text-black hover:bg-gray-50"
+                                  : "bg-blue-500 text-white hover:bg-blue-600"
+                              }`}
+                            >
+                              {isFollowing ? "Following" : "Follow"}
+                            </button>
+                          )}
+                        </span>
+                        <div className="flex gap-4 text-gray-500">
+                          <span>{tweets.length} tweets</span>
+                          <span
+                            className="cursor-pointer hover:underline"
+                            onClick={() => setShowFollowers(true)}
+                          >
+                            {profileUser?.followersCount ||
+                              profileUser?.followers?.length ||
+                              0}{" "}
+                            followers
+                          </span>
+                          <span
+                            className="cursor-pointer hover:underline"
+                            onClick={() => setShowFollowing(true)}
+                          >
+                            {profileUser?.followingCount ||
+                              profileUser?.following?.length ||
+                              0}{" "}
+                            following
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {isSignedIn && currentUser?.username === username && (
+                      <SignOutButton>
+                        <button className="px-4 py-1.5 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600">
+                          Sign Out
+                        </button>
+                      </SignOutButton>
+                    )}
+                  </div>
+                  {profileUser?.bio && (
+                    <p className="mt-4 text-gray-700">{profileUser.bio}</p>
+                  )}
                 </div>
-              ) : (
-                <div className="divide-y divide-gray-200">
-                  {tweets.map((tweet) => (
-                    <Tweet
-                      key={tweet._id}
-                      tweetId={tweet._id}
-                      tweet={tweet.content}
-                      username={tweet.author.username}
-                      createdAt={tweet.createdAt}
-                      initialLikes={tweet.likes.length}
-                      initialComment={tweet.comments.length}
-                      isLikedByUser={tweet.isLikedByUser}
-                      profilePhoto={tweet.author.profilePhoto}
-                      onTweetDeleted={fetchTweets}
-                    />
-                  ))}
+
+                <div>
+                  {tweets.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">
+                      This user hasn't tweeted yet.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-200">
+                      {tweets.map((tweet) => (
+                        <Tweet
+                          key={tweet._id}
+                          tweetId={tweet._id}
+                          tweet={tweet.content}
+                          username={tweet.author.username}
+                          createdAt={tweet.createdAt}
+                          initialLikes={tweet.likes.length}
+                          initialComment={tweet.comments.length}
+                          isLikedByUser={tweet.isLikedByUser}
+                          profilePhoto={tweet.author.profilePhoto}
+                          onTweetDeleted={fetchTweets}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </>
-        )}
-      </main>
-      <div className="hidden md:block w-1/4"></div>
-      <Dialog open={showFollowers} onClose={() => setShowFollowers(false)}>
-        <DialogTitle>Followers</DialogTitle>
-        <DialogContent>
-          <div className="space-y-4">
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      <Dialog
+        open={showFollowers}
+        onClose={() => setShowFollowers(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            maxHeight: "80vh",
+            position: "absolute",
+            top: "10%",
+            left: "50%",
+            transform: "translateX(-50%)",
+          },
+        }}
+      >
+        <DialogTitle className="border-b border-gray-200 pb-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">Followers</h2>
+            <button
+              onClick={() => setShowFollowers(false)}
+              className="p-2 hover:bg-gray-100 rounded-full"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        </DialogTitle>
+        <DialogContent className="p-0">
+          <div className="divide-y divide-gray-200">
             {profileUser?.followers.map((follower) => (
               <div
                 key={follower._id}
-                className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                className="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => {
                   setShowFollowers(false);
                   navigateToProfile(follower.username);
@@ -303,23 +332,52 @@ export default function UserProfile() {
                 <img
                   src={follower.profilePhoto || defaultAvatar.src}
                   alt={follower.username}
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-12 h-12 rounded-full object-cover"
                 />
-                <span className="font-medium">{follower.username}</span>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-gray-900">
+                    {follower.username}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showFollowing} onClose={() => setShowFollowing(false)}>
-        <DialogTitle>Following</DialogTitle>
-        <DialogContent>
-          <div className="space-y-4">
+      <Dialog
+        open={showFollowing}
+        onClose={() => setShowFollowing(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            maxHeight: "80vh",
+            position: "absolute",
+            top: "10%",
+            left: "50%",
+            transform: "translateX(-50%)",
+          },
+        }}
+      >
+        <DialogTitle className="border-b border-gray-200 pb-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">Following</h2>
+            <button
+              onClick={() => setShowFollowing(false)}
+              className="p-2 hover:bg-gray-100 rounded-full"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        </DialogTitle>
+        <DialogContent className="p-0">
+          <div className="divide-y divide-gray-200">
             {profileUser?.following.map((following) => (
               <div
                 key={following._id}
-                className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                className="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => {
                   setShowFollowing(false);
                   navigateToProfile(following.username);
@@ -328,9 +386,13 @@ export default function UserProfile() {
                 <img
                   src={following.profilePhoto || defaultAvatar.src}
                   alt={following.username}
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-12 h-12 rounded-full object-cover"
                 />
-                <span className="font-medium">{following.username}</span>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-gray-900">
+                    {following.username}
+                  </span>
+                </div>
               </div>
             ))}
           </div>

@@ -10,29 +10,54 @@ import { useRouter } from "next/navigation";
 function UserContent() {
   const [tweets, setTweets] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("feed");
   const { user } = useUser();
   const router = useRouter();
 
   const fetchTweets = async () => {
     try {
-      const response = await fetch("/api/tweetLike");
+      const endpoint =
+        activeTab === "feed" ? "/api/tweetLike" : "/api/tweet/following";
+      const response = await fetch(endpoint);
       const data = await response.json();
-      setTweets(data.tweets);
+      setTweets(data.tweets || []);
     } catch (error) {
       console.error("Error fetching tweets:", error);
+      setTweets([]);
     }
   };
 
   useEffect(() => {
     fetchTweets();
-  }, []);
+  }, [activeTab]);
 
   return (
     <div className="flex flex-col items-center p-8 h-screen bg-slate-100 overflow-auto">
       <div className="w-full max-w-xl">
-        <span className="text-3xl font-bold text-slate-800 block mb-8">
-          Tweets
-        </span>
+        <div className="flex justify-center mb-8">
+          <div className="w-[800px] flex border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              className={`flex-1 py-3 text-center font-semibold transition-colors relative ${
+                activeTab === "feed"
+                  ? "text-blue-500 border-b-2 border-blue-500"
+                  : "text-gray-500 hover:bg-gray-50"
+              }`}
+              onClick={() => setActiveTab("feed")}
+            >
+              Feed
+            </button>
+            <button
+              className={`flex-1 py-3 text-center font-semibold transition-colors relative ${
+                activeTab === "following"
+                  ? "text-blue-500 border-b-2 border-blue-500"
+                  : "text-gray-500 hover:bg-gray-50"
+              }`}
+              onClick={() => setActiveTab("following")}
+            >
+              Following
+            </button>
+          </div>
+        </div>
         <button
           onClick={() => {
             if (!user) {

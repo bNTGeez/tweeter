@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { format } from "date-fns";
-import { Heart, MoreHorizontal, Edit, Trash, X } from "lucide-react";
+import { Heart, MoreHorizontal, Trash, X } from "lucide-react";
 import defaultAvatar from "@/public/default-avatar.png";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
@@ -43,10 +43,7 @@ export default function Comment({
   const [isLiked, setIsLiked] = useState(isLikedByUser);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editedComment, setEditedComment] = useState(comment);
   const [deleteError, setDeleteError] = useState("");
-  const [editError, setEditError] = useState("");
   const router = useRouter();
   const { user, isSignedIn } = useUser();
   const { requireAuth } = useAuth();
@@ -150,21 +147,6 @@ export default function Comment({
 
           {showDropdown && (
             <div className="absolute right-0 top-full mt-2 flex flex-col gap-2 bg-white rounded-xl shadow-lg border border-gray-200 z-50 p-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowDropdown(false);
-                  setShowEditDialog(true);
-                  setEditedComment(comment);
-                }}
-                className="flex items-center gap-2 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
-              >
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <Edit size={18} className="text-gray-600" />
-                </div>
-                <span className="pr-4 font-medium text-gray-700">Edit</span>
-              </button>
-
               <button
                 onClick={(e) => {
                   e.stopPropagation();

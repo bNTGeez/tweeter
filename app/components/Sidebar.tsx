@@ -5,10 +5,12 @@ import { House, Search, PenLine, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import CreateTweet from "@/app/components/CreateTweet";
+import Searchbar from "./Searchbar";
 
 export default function Sidebar() {
   const { isSignedIn, isLoaded, user } = useUser();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const router = useRouter();
 
   if (!isLoaded) {
@@ -33,7 +35,7 @@ export default function Sidebar() {
 
   const handleSearch = (): void => {
     if (isSignedIn) {
-      router.push("/search");
+      setIsSearchModalOpen(true);
     } else {
       router.push("auth/sign-in");
     }
@@ -80,6 +82,11 @@ export default function Sidebar() {
         isModalOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onTweetCreated={() => {}}
+      />
+      <Searchbar 
+        isSearchModalOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+
       />
     </>
   );
