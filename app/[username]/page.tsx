@@ -19,6 +19,7 @@ interface TweetType {
   likes: string[];
   comments: any[];
   createdAt: string;
+  isLikedByUser: boolean;
 }
 
 interface UserProfile {
@@ -151,14 +152,11 @@ export default function UserProfile() {
 
   const fetchTweets = async () => {
     try {
-      const response = await fetch(`/api/tweet`);
+      const response = await fetch(`/api/user/${username}`);
       const data = await response.json();
 
       if (response.ok) {
-        const userTweets = data.tweets.filter(
-          (tweet: any) => tweet.author.username === username
-        );
-        setTweets(userTweets || []);
+        setTweets(data.tweets || []);
       } else {
         setError(data.error || "Failed to fetch tweets");
       }
@@ -277,11 +275,7 @@ export default function UserProfile() {
                       createdAt={tweet.createdAt}
                       initialLikes={tweet.likes.length}
                       initialComment={tweet.comments.length}
-                      isLikedByUser={
-                        isSignedIn && currentUser?.id
-                          ? tweet.likes.includes(currentUser.id)
-                          : false
-                      }
+                      isLikedByUser={tweet.isLikedByUser}
                       profilePhoto={tweet.author.profilePhoto}
                       onTweetDeleted={fetchTweets}
                     />

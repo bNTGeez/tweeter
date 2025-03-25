@@ -14,6 +14,13 @@ export async function GET(
     await connectDB();
     const params = await context.params;
     const id = params.id;
+    const clerkUser = await currentUser();
+    let userId = null;
+
+    if (clerkUser) {
+      const user = await User.findOne({ clerkId: clerkUser.id });
+      userId = user?._id;
+    }
 
     const tweet = await Tweet.findById(id)
       .populate({
@@ -32,7 +39,22 @@ export async function GET(
       return NextResponse.json({ error: "Tweet not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ tweet }, { status: 200 });
+    const tweetWithLikeInfo = {
+      ...tweet.toObject(),
+      isLikedByUser: userId
+        ? tweet.likes.some((id: String) => id.toString() === userId.toString())
+        : false,
+      comments: tweet.comments.map((comment: any) => ({
+        ...comment.toObject(),
+        isLikedByUser: userId
+          ? comment.likes.some(
+              (id: String) => id.toString() === userId.toString()
+            )
+          : false,
+      })),
+    };
+
+    return NextResponse.json({ tweet: tweetWithLikeInfo }, { status: 200 });
   } catch (error) {
     console.error("Error fetching tweet:", error);
     return NextResponse.json(
