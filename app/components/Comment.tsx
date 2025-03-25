@@ -12,6 +12,7 @@ import {
   DialogActions,
   Button,
 } from "@mui/material";
+import { useAuth } from "@/backend/utils/auth";
 
 interface CommentProps {
   comment: string;
@@ -48,6 +49,7 @@ export default function Comment({
   const [editError, setEditError] = useState("");
   const router = useRouter();
   const { user, isSignedIn } = useUser();
+  const { requireAuth } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -107,6 +109,11 @@ export default function Comment({
   };
 
   const handleLike = async () => {
+    // Check authentication before proceeding
+    if (!requireAuth()) {
+      return; // Will redirect to sign-in page
+    }
+
     try {
       const response = await fetch("/api/commentLike", {
         method: "POST",

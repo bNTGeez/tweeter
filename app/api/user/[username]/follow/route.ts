@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/backend/utils/mongoose";
 import User from "@/backend/models/user.model";
 import { currentUser } from "@clerk/nextjs/server";
+import mongoose from "mongoose";
 
 export const runtime = "nodejs";
 
@@ -33,62 +34,97 @@ export async function POST(
       );
     }
 
-    if (user._id.toString() === targetUser._id.toString()) {
-      return NextResponse.json(
-        { error: "Cannot follow yourself" },
-        { status: 400 }
-      );
-    }
+    try {
+      // Check if following array check
+      let following = false;
+      if (user.following && Array.isArray(user.following)) {
+        following = user.following.some(
+          (id: any) => id.toString() === targetUser._id.toString()
+        );
+      }
 
-    const isFollowing = user.following.some(
-      (id) => id.toString() === targetUser._id.toString()
-    );
+      if (!following) {
+        // Store direct reference to IDs
+        const userId = user._id;
+        const targetId = targetUser._id;
 
-    console.log(
-      `User ${user.username} is ${
-        isFollowing ? "already following" : "not following"
-      } ${targetUser.username}`
-    );
+        // First ensure the arrays are initialized if needed
+        if (!user.following) {
+          user.following = [];
+          await user.save();
+        }
 
-    if (!isFollowing) {
-      await User.findByIdAndUpdate(user._id, {
-        $addToSet: { following: targetUser._id },
-      });
-      await User.findByIdAndUpdate(targetUser._id, {
-        $addToSet: { followers: user._id },
-      });
+        if (!targetUser.followers) {
+          targetUser.followers = [];
+          await targetUser.save();
+        }
 
-      console.log(
-        `User ${user.username} is now following ${targetUser.username}`
-      );
-      return NextResponse.json(
-        {
+        user.following.push(targetId);
+        targetUser.followers.push(userId);
+
+        // Save both documents
+        await user.save();
+        await targetUser.save();
+
+        // Re-fetch to verify the change
+        const updatedUser = await User.findById(userId);
+        const updatedTarget = await User.findById(targetId);
+
+        return NextResponse.json({
           following: true,
-          message: `You are now following ${targetUser.username}`,
-        },
-        { status: 200 }
-      );
-    } else {
-      await User.findByIdAndUpdate(user._id, {
-        $pull: { following: targetUser._id },
-      });
-      await User.findByIdAndUpdate(targetUser._id, {
-        $pull: { followers: user._id },
-      });
+          followersCount: updatedTarget.followers.length,
+          followingCount: updatedTarget.following
+            ? updatedTarget.following.length
+            : 0,
+        });
+      } else {
+        // Store direct reference to IDs as strings for comparison
+        const userId = user._id;
+        const targetId = targetUser._id;
+        const userIdStr = userId.toString();
+        const targetIdStr = targetId.toString();
 
-      console.log(
-        `User ${user.username} has unfollowed ${targetUser.username}`
-      );
-      return NextResponse.json(
-        {
+        // Remove the follow relationship - direct method
+        if (user.following && Array.isArray(user.following)) {
+          user.following = user.following.filter(
+            (id: any) => id.toString() !== targetIdStr
+          );
+        }
+
+        if (targetUser.followers && Array.isArray(targetUser.followers)) {
+          targetUser.followers = targetUser.followers.filter(
+            (id: any) => id.toString() !== userIdStr
+          );
+        }
+
+        // Save both documents
+        await user.save();
+
+        await targetUser.save();
+
+        // Re-fetch to verify the change
+        const updatedUser = await User.findById(userId);
+        const updatedTarget = await User.findById(targetId);
+
+        return NextResponse.json({
           following: false,
-          message: `You have unfollowed ${targetUser.username}`,
-        },
-        { status: 200 }
+          followersCount: updatedTarget.followers
+            ? updatedTarget.followers.length
+            : 0,
+          followingCount: updatedTarget.following
+            ? updatedTarget.following.length
+            : 0,
+        });
+      }
+    } catch (dbError) {
+      console.error("Database error in follow/unfollow operation:", dbError);
+      return NextResponse.json(
+        { error: "Error updating follow status in database" },
+        { status: 500 }
       );
     }
   } catch (error) {
-    console.error("Error following/unfollowing user:", error);
+    console.error("Error in follow/unfollow API:", error);
     return NextResponse.json(
       { error: "Error following/unfollowing user" },
       { status: 500 }

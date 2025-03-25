@@ -25,7 +25,6 @@ const CreateTweet = ({
   }, [isModalOpen]);
 
   const handleSubmit = async () => {
-
     try {
       setError("");
       const response = await fetch("/api/tweet", {

@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Sidebar from "@/app/components/Sidebar";
 import Tweet from "@/app/components/Tweet";
-import { useUser } from "@clerk/nextjs";
+import { useUser, SignOutButton } from "@clerk/nextjs";
 import defaultAvatar from "@/public/default-avatar.png";
+import { Dialog, DialogTitle, DialogContent } from "@mui/material";
+import { useRouter } from "next/navigation";
 
 interface TweetType {
   _id: string;
@@ -23,13 +25,24 @@ interface UserProfile {
   _id: string;
   username: string;
   profilePhoto?: string;
-  followers: any[];
-  following: any[];
+  followers: Array<{
+    _id: string;
+    username: string;
+    profilePhoto?: string;
+  }>;
+  following: Array<{
+    _id: string;
+    username: string;
+    profilePhoto?: string;
+  }>;
+  followersCount?: number;
+  followingCount?: number;
   bio?: string;
 }
 
 export default function UserProfile() {
   const params = useParams();
+  const router = useRouter();
   const username = params?.username as string;
   const { user: currentUser, isSignedIn } = useUser();
   const [tweets, setTweets] = useState<TweetType[]>([]);
@@ -37,60 +50,101 @@ export default function UserProfile() {
   const [profileUser, setProfileUser] = useState<UserProfile | null>(null);
   const [error, setError] = useState("");
   const [isFollowing, setIsFollowing] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
 
   const fetchUserProfile = async () => {
     try {
-      setLoading(true);
-      console.log("Fetching user profile for:", username);
       const userResponse = await fetch(`/api/user/${username}`);
       const userData = await userResponse.json();
 
       if (userResponse.ok) {
-        console.log("User data received:", userData);
         setProfileUser(userData.user);
 
-        // Use the isFollowing flag from the API
-        setIsFollowing(!!userData.isFollowing);
+        // Check if the current user is following this profile
+        if (isSignedIn && currentUser) {
+          try {
+            // Get the current user's MongoDB document
+            const currentUserResponse = await fetch(
+              `/api/user/${currentUser.username}`
+            );
+            if (currentUserResponse.ok) {
+              const currentUserData = await currentUserResponse.json();
+
+              // Check if current user has a following list that includes target user
+              if (
+                currentUserData.user.following &&
+                Array.isArray(currentUserData.user.following)
+              ) {
+                // Convert target user ID to string for comparison
+                const targetUserId = userData.user._id.toString();
+
+                // Check if any ID in the following array matches the target user ID
+                const isUserFollowing = currentUserData.user.following.some(
+                  (following: any) => following._id.toString() === targetUserId
+                );
+
+                setIsFollowing(isUserFollowing);
+              } else {
+                setIsFollowing(false);
+              }
+            }
+          } catch (error) {
+            console.error("Error checking follow status:", error);
+            setIsFollowing(false);
+          }
+        } else {
+          setIsFollowing(false);
+        }
       } else {
-        console.error("Failed to fetch user:", userData.error);
         setError(userData.error || "User not found");
+        return;
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
       setError("Failed to fetch user profile");
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleFollow = async () => {
-    if (!isSignedIn) return;
+    if (!isSignedIn) {
+      console.log("User not signed in, cannot follow/unfollow");
+      return;
+    }
+
+    console.log("Attempting to follow/unfollow:", username);
 
     try {
-      setError("");
-      console.log(
-        `Attempting to ${isFollowing ? "unfollow" : "follow"} user:`,
-        username
-      );
-
       const response = await fetch(`/api/user/${username}/follow`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
+
+      if (!response.ok) {
+        console.error("Error response from follow API:", response.status);
+        setError("Failed to update follow status");
+        return;
+      }
 
       const data = await response.json();
 
-      if (response.ok) {
-        console.log("Follow response:", data);
-        setIsFollowing(data.following);
+      // Update UI based on server response
+      setIsFollowing(data.following);
 
-        // Simply refresh the profile data after follow/unfollow
-        fetchUserProfile();
-      } else {
-        console.error("Failed to follow/unfollow:", data.error);
-        setError(data.error || "Failed to follow/unfollow user");
+      if (profileUser) {
+        setProfileUser({
+          ...profileUser,
+          followersCount: data.followersCount,
+          followingCount: data.followingCount,
+        });
       }
+
+      // Force refresh the user data
+      await fetchUserProfile();
     } catch (error) {
-      console.error("Error following/unfollowing user:", error);
+      console.error("Error in follow operation:", error);
       setError("Failed to follow/unfollow user");
     }
   };
@@ -116,12 +170,18 @@ export default function UserProfile() {
     }
   };
 
+  const navigateToProfile = (profileUsername: string) => {
+    if (profileUsername) {
+      router.push(`/${profileUsername}`);
+    }
+  };
+
   useEffect(() => {
     if (username) {
       fetchUserProfile();
       fetchTweets();
     }
-  }, [username]);
+  }, [username, isSignedIn, currentUser]);
 
   return (
     <div className="flex min-h-screen">
@@ -148,31 +208,52 @@ export default function UserProfile() {
                     className="w-16 h-16 rounded-full object-cover"
                   />
                   <div>
-                    <h2 className="text-xl font-bold">
-                      {profileUser?.username || String(username)}
-                    </h2>
+                    <span className="flex items-center gap-4">
+                      <h2 className="text-xl font-bold">
+                        {profileUser?.username || String(username)}
+                      </h2>
+                      {isSignedIn && currentUser?.username !== username && (
+                        <button
+                          onClick={handleFollow}
+                          className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
+                            isFollowing
+                              ? "bg-white border border-gray-300 text-black hover:bg-gray-50"
+                              : "bg-blue-500 text-white hover:bg-blue-600"
+                          }`}
+                        >
+                          {isFollowing ? "Following" : "Follow"}
+                        </button>
+                      )}
+                    </span>
                     <div className="flex gap-4 text-gray-500">
                       <span>{tweets.length} tweets</span>
-                      <span>
-                        {profileUser?.followers?.length || 0} followers
+                      <span
+                        className="cursor-pointer hover:underline"
+                        onClick={() => setShowFollowers(true)}
+                      >
+                        {profileUser?.followersCount ||
+                          profileUser?.followers?.length ||
+                          0}{" "}
+                        followers
                       </span>
-                      <span>
-                        {profileUser?.following?.length || 0} following
+                      <span
+                        className="cursor-pointer hover:underline"
+                        onClick={() => setShowFollowing(true)}
+                      >
+                        {profileUser?.followingCount ||
+                          profileUser?.following?.length ||
+                          0}{" "}
+                        following
                       </span>
                     </div>
                   </div>
                 </div>
-                {isSignedIn && currentUser?.username !== username && (
-                  <button
-                    onClick={handleFollow}
-                    className={`px-4 py-2 rounded-full font-semibold ${
-                      isFollowing
-                        ? "bg-white border border-gray-300 text-black hover:bg-gray-50"
-                        : "bg-blue-500 text-white hover:bg-blue-600"
-                    }`}
-                  >
-                    {isFollowing ? "Following" : "Follow"}
-                  </button>
+                {isSignedIn && currentUser?.username === username && (
+                  <SignOutButton>
+                    <button className="px-4 py-1.5 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600">
+                      Sign Out
+                    </button>
+                  </SignOutButton>
                 )}
               </div>
               {profileUser?.bio && (
@@ -212,6 +293,55 @@ export default function UserProfile() {
         )}
       </main>
       <div className="hidden md:block w-1/4"></div>
+      <Dialog open={showFollowers} onClose={() => setShowFollowers(false)}>
+        <DialogTitle>Followers</DialogTitle>
+        <DialogContent>
+          <div className="space-y-4">
+            {profileUser?.followers.map((follower) => (
+              <div
+                key={follower._id}
+                className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                onClick={() => {
+                  setShowFollowers(false);
+                  navigateToProfile(follower.username);
+                }}
+              >
+                <img
+                  src={follower.profilePhoto || defaultAvatar.src}
+                  alt={follower.username}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <span className="font-medium">{follower.username}</span>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showFollowing} onClose={() => setShowFollowing(false)}>
+        <DialogTitle>Following</DialogTitle>
+        <DialogContent>
+          <div className="space-y-4">
+            {profileUser?.following.map((following) => (
+              <div
+                key={following._id}
+                className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                onClick={() => {
+                  setShowFollowing(false);
+                  navigateToProfile(following.username);
+                }}
+              >
+                <img
+                  src={following.profilePhoto || defaultAvatar.src}
+                  alt={following.username}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <span className="font-medium">{following.username}</span>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

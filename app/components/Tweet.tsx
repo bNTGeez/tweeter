@@ -14,6 +14,7 @@ import {
   DialogActions,
   Button,
 } from "@mui/material";
+import { useAuth } from "@/backend/utils/auth";
 
 interface TweetProps {
   tweet: string;
@@ -63,6 +64,7 @@ export default function Tweet({
   const [deleteError, setDeleteError] = useState("");
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { requireAuth } = useAuth();
 
   useEffect(() => {
     setIsLiked(isLikedByUser);
@@ -140,6 +142,11 @@ export default function Tweet({
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    if (!requireAuth()) {
+      return;
+    }
+
     try {
       const response = await fetch("/api/tweetLike", {
         method: "POST",
@@ -160,6 +167,11 @@ export default function Tweet({
 
   const handleCommentClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    if (!requireAuth()) {
+      return;
+    }
+
     setIsCommentModalOpen(true);
   };
 
