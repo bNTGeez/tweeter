@@ -4,6 +4,7 @@ import Tweet from "@/backend/models/tweet.model";
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { connectDB } from "@/backend/utils/mongoose";
+import { fetchUser } from "@/backend/controllers/user.controller";
 
 export async function POST(req: Request) {
   try {
@@ -19,7 +20,22 @@ export async function POST(req: Request) {
       );
     }
 
-    const user = await User.findOne({ clerkId: clerkUser.id });
+    // Fetch or create user
+    const user = await fetchUser(clerkUser.id, {
+      username:
+        clerkUser.username || `user_${Math.floor(Math.random() * 10000)}`,
+      email: clerkUser.emailAddresses[0]?.emailAddress,
+      profilePhoto: clerkUser.imageUrl,
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: "User not found",
+        },
+        { status: 404 }
+      );
+    }
 
     const { content, tweetId } = await req.json();
 
