@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
           `user_${Math.floor(Math.random() * 10000)}`;
 
         // Check if user exists
-        let user = await User.findOne({ clerkId: id });
+        const user = await User.findOne({ clerkId: id });
 
         if (!user) {
           // Create new user
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
         `user_${Math.floor(Math.random() * 10000)}`;
 
       // Check if user exists
-      let user = await User.findOne({ clerkId: id });
+      const user = await User.findOne({ clerkId: id });
 
       if (!user) {
         // Create new user
