@@ -26,7 +26,8 @@ const ProfileSettings = () => {
       });
 
       alert("Username updated successfully");
-    } catch (error) {
+    } catch (err) {
+      console.error("Error updating username:", err);
       setError("Failed to update username");
     }
     setIsUpdating(false);

@@ -4,18 +4,35 @@ import { useParams } from "next/navigation";
 import Tweet from "@/app/components/Tweet";
 import Sidebar from "@/app/components/Sidebar";
 import Comment from "@/app/components/Comment";
-import Footer from "@/app/components/Footer";
-import { format } from "date-fns";
+
+interface TweetType {
+  _id: string;
+  content: string;
+  author: {
+    username: string;
+    profilePhoto?: string;
+  };
+  likes: string[];
+  comments: Array<{
+    _id: string;
+    content: string;
+    author: {
+      username: string;
+      profilePhoto?: string;
+    };
+    createdAt: string;
+    likes: string[];
+    isLikedByUser: boolean;
+  }>;
+  createdAt: string;
+  isLikedByUser: boolean;
+  userId?: string;
+}
 
 export default function TweetStatusPage() {
-  const [tweet, setTweet] = useState<any>(null);
+  const [tweet, setTweet] = useState<TweetType | null>(null);
   const params = useParams();
-  const username = params.username;
-  const tweetId = params.id;
-
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "h:mm a · MMM d, yyyy");
-  };
+  const tweetId = params.id as string;
 
   useEffect(() => {
     const fetchTweet = async () => {
@@ -51,7 +68,7 @@ export default function TweetStatusPage() {
               profilePhoto={tweet.author?.profilePhoto}
             />
             <div className="border-t border-slate-200">
-              {tweet.comments.map((comment: any) => (
+              {tweet.comments.map((comment) => (
                 <Comment
                   key={comment._id}
                   comment={comment.content}

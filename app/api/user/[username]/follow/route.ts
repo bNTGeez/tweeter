@@ -1,19 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connectDB } from "@/backend/utils/mongoose";
 import User from "@/backend/models/user.model";
 import { currentUser } from "@clerk/nextjs/server";
-import mongoose from "mongoose";
 
 export const runtime = "nodejs";
 
 export async function POST(
-  req: NextRequest,
+  req: Request,
   context: { params: { username: string } }
 ) {
   try {
     await connectDB();
     const clerkUser = await currentUser();
-    const params = await context.params;
 
     if (!clerkUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,7 +23,10 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const targetUser = await User.findOne({ username: params.username });
+
+    const params = await context.params;
+    const username = params.username;
+    const targetUser = await User.findOne({ username });
 
     if (!targetUser) {
       return NextResponse.json(
@@ -39,7 +40,7 @@ export async function POST(
       let following = false;
       if (user.following && Array.isArray(user.following)) {
         following = user.following.some(
-          (id: any) => id.toString() === targetUser._id.toString()
+          (id: string) => id.toString() === targetUser._id.toString()
         );
       }
 
@@ -67,7 +68,6 @@ export async function POST(
         await targetUser.save();
 
         // Re-fetch to verify the change
-        const updatedUser = await User.findById(userId);
         const updatedTarget = await User.findById(targetId);
 
         return NextResponse.json({
@@ -87,23 +87,21 @@ export async function POST(
         // Remove the follow relationship - direct method
         if (user.following && Array.isArray(user.following)) {
           user.following = user.following.filter(
-            (id: any) => id.toString() !== targetIdStr
+            (id: string) => id.toString() !== targetIdStr
           );
         }
 
         if (targetUser.followers && Array.isArray(targetUser.followers)) {
           targetUser.followers = targetUser.followers.filter(
-            (id: any) => id.toString() !== userIdStr
+            (id: string) => id.toString() !== userIdStr
           );
         }
 
         // Save both documents
         await user.save();
-
         await targetUser.save();
 
         // Re-fetch to verify the change
-        const updatedUser = await User.findById(userId);
         const updatedTarget = await User.findById(targetId);
 
         return NextResponse.json({

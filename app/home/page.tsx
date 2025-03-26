@@ -2,13 +2,26 @@
 import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/app/components/Sidebar";
 import Tweet from "@/app/components/Tweet";
-import Footer from "@/app/components/Footer";
 import CreateTweet from "../components/CreateTweet";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
+interface Tweet {
+  _id: string;
+  content: string;
+  author?: {
+    username: string;
+    _id: string;
+    profilePhoto?: string;
+  };
+  createdAt: string;
+  likes?: string[];
+  comments?: string[];
+  isLikedByUser: boolean;
+}
+
 interface UserContentProps {
-  tweets: any[];
+  tweets: Tweet[];
   fetchTweets: () => Promise<void>;
   activeTab: string;
   setActiveTab: (tab: string) => void;
@@ -84,7 +97,7 @@ function UserContent({
                 : "No tweets yet"}
             </div>
           ) : (
-            tweets.map((tweet: any) => (
+            tweets.map((tweet: Tweet) => (
               <Tweet
                 key={tweet._id}
                 tweetId={tweet._id}
@@ -108,15 +121,13 @@ function UserContent({
 }
 
 export default function HomePage() {
-  const [tweets, setTweets] = useState<any[]>([]);
+  const [tweets, setTweets] = useState<Tweet[]>([]);
   const [activeTab, setActiveTab] = useState("feed");
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const fetchTweets = useCallback(async () => {
     try {
       setIsLoading(true);
-      setError(null);
       const endpoint =
         activeTab === "feed" ? "/api/tweetLike" : "/api/tweet/following";
       const response = await fetch(endpoint);
@@ -127,7 +138,6 @@ export default function HomePage() {
       setTweets(data.tweets || []);
     } catch (error) {
       console.error("Error fetching tweets:", error);
-      setError("Failed to load tweets. Please try again.");
       setTweets([]);
     } finally {
       setIsLoading(false);

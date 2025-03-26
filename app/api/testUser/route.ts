@@ -1,9 +1,17 @@
 // app/api/testUser/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { fetchUser } from "@/backend/controllers/user.controller";
 
-export async function GET(req: NextRequest) {
+interface UserData {
+  clerkId: string;
+  username: string;
+  email: string | undefined;
+  bio: string;
+  profilePhoto: string | null;
+}
+
+export async function GET() {
   try {
     const user = await currentUser();
 
@@ -17,7 +25,7 @@ export async function GET(req: NextRequest) {
     )?.emailAddress;
 
     // Prepare user data
-    const userData = {
+    const userData: UserData = {
       clerkId: user.id,
       username:
         user.username ||
@@ -34,7 +42,11 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(dbUser, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (err) {
+    console.error("Error in testUser:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Internal server error" },
+      { status: 500 }
+    );
   }
 }

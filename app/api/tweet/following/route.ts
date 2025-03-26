@@ -1,9 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connectDB } from "@/backend/utils/mongoose";
 import { currentUser } from "@clerk/nextjs/server";
 import User from "@/backend/models/user.model";
 import Tweet from "@/backend/models/tweet.model";
-export async function GET(req: NextRequest) {
+
+interface TweetType {
+  _id: string;
+  content: string;
+  author: {
+    username: string;
+    profilePhoto?: string;
+  };
+  likes: string[];
+  createdAt: string;
+  toObject: () => TweetType;
+}
+
+export async function GET() {
   try {
     await connectDB();
     const clerkUser = await currentUser();
@@ -19,7 +32,7 @@ export async function GET(req: NextRequest) {
     }
 
     const userFollowing = await User.findById(userId).select("following");
-    const followingIds = userFollowing.following.map((id: any) =>
+    const followingIds = userFollowing.following.map((id: string) =>
       id.toString()
     );
 
@@ -32,18 +45,18 @@ export async function GET(req: NextRequest) {
       })
       .sort({ createdAt: -1 });
 
-    const tweetsWithLikeInfo = tweets.map((tweet: any) => ({
+    const tweetsWithLikeInfo = tweets.map((tweet: TweetType) => ({
       ...tweet.toObject(),
       isLikedByUser: tweet.likes.some(
-        (id: String) => id.toString() === userId.toString()
+        (id: string) => id.toString() === userId.toString()
       ),
       likesCount: tweet.likes.length,
     }));
 
     return NextResponse.json({ tweets: tweetsWithLikeInfo }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: "Failted to fetch following tweets" },
+      { error: "Failed to fetch following tweets" },
       { status: 500 }
     );
   }

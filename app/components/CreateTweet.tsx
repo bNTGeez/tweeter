@@ -79,6 +79,7 @@ const CreateTweet = ({
               }}
             />
           </div>
+          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
           <div className="flex justify-end">
             <Button
               variant="contained"

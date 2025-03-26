@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { format } from "date-fns";
-import { Heart, MoreHorizontal, Trash, X } from "lucide-react";
+import { Heart, MoreHorizontal, Trash } from "lucide-react";
+import Image from "next/image";
 import defaultAvatar from "@/public/default-avatar.png";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
@@ -23,8 +24,6 @@ interface CommentProps {
   isLikedByUser: boolean;
   profilePhoto?: string;
   onCommentDeleted?: () => void;
-  tweetId?: string;
-  userId?: string | null;
 }
 
 export default function Comment({
@@ -36,8 +35,6 @@ export default function Comment({
   isLikedByUser = false,
   profilePhoto,
   onCommentDeleted,
-  tweetId,
-  userId,
 }: CommentProps) {
   const [likes, setLikes] = useState(initialLikes);
   const [isLiked, setIsLiked] = useState(isLikedByUser);
@@ -167,10 +164,12 @@ export default function Comment({
       )}
 
       <div className="flex items-start space-x-3 mb-4">
-        <img
-          src={profilePhoto || defaultAvatar.src}
+        <Image
+          src={profilePhoto || defaultAvatar}
           alt={username}
-          className="w-10 h-10 rounded-full object-cover cursor-pointer"
+          width={40}
+          height={40}
+          className="rounded-full cursor-pointer"
           onClick={handleProfileClick}
         />
         <div className="flex flex-col flex-grow">

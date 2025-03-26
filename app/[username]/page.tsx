@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Sidebar from "@/app/components/Sidebar";
 import Tweet from "@/app/components/Tweet";
@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
+import Image from "next/image";
 
 interface TweetType {
   _id: string;
@@ -24,7 +25,17 @@ interface TweetType {
     profilePhoto?: string;
   };
   likes: string[];
-  comments: any[];
+  comments: Array<{
+    _id: string;
+    content: string;
+    author: {
+      _id: string;
+      username: string;
+      profilePhoto?: string;
+    };
+    createdAt: string;
+    likes: string[];
+  }>;
   createdAt: string;
   isLikedByUser: boolean;
 }
@@ -46,6 +57,12 @@ interface UserProfile {
   followersCount?: number;
   followingCount?: number;
   bio?: string;
+}
+
+interface FollowingUser {
+  _id: string;
+  username: string;
+  profilePhoto?: string;
 }
 
 export default function UserProfile() {
@@ -104,7 +121,7 @@ export default function UserProfile() {
     }
   };
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       setLoading(true);
       const userResponse = await fetch(`/api/user/${username}`);
@@ -139,7 +156,8 @@ export default function UserProfile() {
 
                 // Check if any ID in the following array matches the target user ID
                 const isUserFollowing = currentUserData.user.following.some(
-                  (following: any) => following._id.toString() === targetUserId
+                  (following: FollowingUser) =>
+                    following._id.toString() === targetUserId
                 );
 
                 setIsFollowing(isUserFollowing);
@@ -147,8 +165,8 @@ export default function UserProfile() {
                 setIsFollowing(false);
               }
             }
-          } catch (error) {
-            console.error("Error checking follow status:", error);
+          } catch {
+            console.error("Error checking follow status:");
             setIsFollowing(false);
           }
         } else {
@@ -157,13 +175,13 @@ export default function UserProfile() {
       } else {
         setError(userData.error || "User not found");
       }
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
+    } catch {
+      console.error("Error fetching user profile:");
       setError("Failed to fetch user profile");
     } finally {
       setLoading(false);
     }
-  };
+  }, [username, isSignedIn, currentUser]);
 
   const handleFollow = async () => {
     if (!isSignedIn) {
@@ -208,7 +226,7 @@ export default function UserProfile() {
     }
   };
 
-  const fetchTweets = async () => {
+  const fetchTweets = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/user/${username}`);
@@ -218,13 +236,13 @@ export default function UserProfile() {
       } else {
         setError("Failed to fetch tweets");
       }
-    } catch (error) {
-      console.error("Error fetching tweets:", error);
+    } catch {
+      console.error("Error fetching tweets:");
       setError("Failed to fetch tweets");
     } finally {
       setLoading(false);
     }
-  };
+  }, [username]);
 
   const handleTweetDeleted = () => {
     fetchTweets(); // Refresh tweets when one is deleted
@@ -245,7 +263,13 @@ export default function UserProfile() {
       fetchUserProfile();
       fetchTweets();
     }
-  }, [username, isSignedIn, currentUser]);
+  }, [
+    username,
+    isSignedIn,
+    currentUser?.username,
+    fetchUserProfile,
+    fetchTweets,
+  ]);
 
   useEffect(() => {
     if (showEditProfileDialog && profileUser) {
@@ -277,10 +301,12 @@ export default function UserProfile() {
                 <div className="p-4 border-b border-gray-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <img
-                        src={profileUser?.profilePhoto || defaultAvatar.src}
-                        alt={profileUser?.username || String(username)}
-                        className="w-16 h-16 rounded-full object-cover"
+                      <Image
+                        src={profileUser?.profilePhoto || defaultAvatar}
+                        alt={profileUser?.username || "Profile"}
+                        width={150}
+                        height={150}
+                        className="rounded-full"
                       />
                       <div>
                         <span className="flex items-center gap-4">
@@ -393,9 +419,7 @@ export default function UserProfile() {
                       <h3 className="text-sm font-medium text-gray-500 mb-2">
                         Bio
                       </h3>
-                      <p className="text-gray-700 whitespace-pre-wrap">
-                        {profileUser.bio}
-                      </p>
+                      <p className="text-gray-600 mt-2">{profileUser.bio}</p>
                     </div>
                   )}
                 </div>
@@ -403,7 +427,7 @@ export default function UserProfile() {
                 <div>
                   {tweets.length === 0 ? (
                     <div className="p-4 text-center text-gray-500">
-                      This user hasn't tweeted yet.
+                      This user hasn&apos;t tweeted yet.
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-200">
@@ -467,10 +491,12 @@ export default function UserProfile() {
                   navigateToProfile(follower.username);
                 }}
               >
-                <img
-                  src={follower.profilePhoto || defaultAvatar.src}
+                <Image
+                  src={follower.profilePhoto || defaultAvatar}
                   alt={follower.username}
-                  className="w-12 h-12 rounded-full object-cover"
+                  width={40}
+                  height={40}
+                  className="rounded-full"
                 />
                 <div className="flex flex-col">
                   <span className="font-semibold text-gray-900">
@@ -521,10 +547,12 @@ export default function UserProfile() {
                   navigateToProfile(following.username);
                 }}
               >
-                <img
-                  src={following.profilePhoto || defaultAvatar.src}
+                <Image
+                  src={following.profilePhoto || defaultAvatar}
                   alt={following.username}
-                  className="w-12 h-12 rounded-full object-cover"
+                  width={40}
+                  height={40}
+                  className="rounded-full"
                 />
                 <div className="flex flex-col">
                   <span className="font-semibold text-gray-900">

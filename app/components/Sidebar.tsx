@@ -45,10 +45,6 @@ export default function Sidebar({ onTweetCreated }: SidebarProps) {
     }
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
-
   return (
     <>
       <div className="h-screen w-[250px] bg-gradient-to-b from-slate-600 to-slate-800">

@@ -1,11 +1,11 @@
 import Comment from "@/backend/models/comment.model";
 import User from "@/backend/models/user.model";
 import Tweet from "@/backend/models/tweet.model";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { connectDB } from "@/backend/utils/mongoose";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     await connectDB();
     const clerkUser = await currentUser();
@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ comment: populatedComment }, { status: 201 });
-  } catch (error) {
+  } catch (err) {
+    console.error("Error creating comment:", err);
     return NextResponse.json(
       {
         error: "Failed to create comment",
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
@@ -83,7 +84,8 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: -1 });
 
     return NextResponse.json({ comments }, { status: 200 });
-  } catch (error) {
+  } catch (err) {
+    console.error("Error fetching comments:", err);
     return NextResponse.json(
       {
         error: "Failed to fetch comments",
@@ -93,7 +95,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE(req: Request) {
   try {
     await connectDB();
     const clerkUser = await currentUser();
@@ -154,7 +156,8 @@ export async function DELETE(req: NextRequest) {
       { message: "Comment deleted successfully" },
       { status: 200 }
     );
-  } catch (error) {
+  } catch (err) {
+    console.error("Error deleting comment:", err);
     return NextResponse.json(
       { error: "Failed to delete comment" },
       { status: 500 }
@@ -162,7 +165,7 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: NextRequest) {
+export async function PATCH(req: Request) {
   try {
     await connectDB();
     const clerkUser = await currentUser();
@@ -198,15 +201,13 @@ export async function PATCH(req: NextRequest) {
         content,
       },
       { new: true }
-    ).populate({
-      path: "author",
-      select: "username profilePhoto",
-    });
+    );
 
     return NextResponse.json({ comment: updatedComment }, { status: 200 });
-  } catch (error) {
+  } catch (err) {
+    console.error("Error updating comment:", err);
     return NextResponse.json(
-      { error: "Failed to edit comment" },
+      { error: "Failed to update comment" },
       { status: 500 }
     );
   }

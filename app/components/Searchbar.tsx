@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Search, X, Loader2 } from "lucide-react";
 import { Modal } from "@mui/material";
+import Image from "next/image";
 import defaultProfilePhoto from "@/public/default-avatar.png";
 import { useRouter } from "next/navigation";
 
@@ -15,14 +16,9 @@ interface User {
 interface SearchbarProps {
   isSearchModalOpen: boolean;
   onClose: () => void;
-  onSearch?: () => void;
 }
 
-const Searchbar = ({
-  isSearchModalOpen,
-  onClose,
-  onSearch,
-}: SearchbarProps) => {
+const Searchbar = ({ isSearchModalOpen, onClose }: SearchbarProps) => {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -103,10 +99,12 @@ const Searchbar = ({
                 onClick={() => handleUserClick(user.username)}
                 className="flex items-center gap-2 p-4 hover:bg-gray-100 w-full"
               >
-                <img
-                  src={user.profilePhoto || defaultProfilePhoto.src}
+                <Image
+                  src={user.profilePhoto || defaultProfilePhoto}
                   alt={user.username}
-                  className="w-10 h-10 rounded-full"
+                  width={40}
+                  height={40}
+                  className="rounded-full"
                 />
                 <span className="font-medium">{user.username}</span>
               </button>

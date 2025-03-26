@@ -1,8 +1,9 @@
 "use client";
 import { format } from "date-fns";
-import { useState, useEffect, useRef } from "react";
-import { Heart, MoreHorizontal, Trash, X } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Heart, MoreHorizontal, Trash } from "lucide-react";
 import { MessageCircle } from "lucide-react";
+import Image from "next/image";
 import CommentForm from "./CommentForm";
 import Comment from "./Comment";
 import { useRouter } from "next/navigation";
@@ -100,11 +101,23 @@ export default function Tweet({
     };
   }, [showDropdown]);
 
+  const fetchComments = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/tweet/${tweetId}/comments`);
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data.comments);
+      }
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+  }, [tweetId]);
+
   useEffect(() => {
     if (showComments) {
       fetchComments();
     }
-  }, [showComments, tweetId]);
+  }, [showComments, tweetId, fetchComments]);
 
   const handleDelete = async () => {
     setDeleteError("");
@@ -187,18 +200,6 @@ export default function Tweet({
     setCommentCount((prev) => prev + 1);
   };
 
-  const fetchComments = async () => {
-    try {
-      const response = await fetch(`/api/tweet/${tweetId}/comments`);
-      if (response.ok) {
-        const data = await response.json();
-        setComments(data.comments);
-      }
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-    }
-  };
-
   const handleCommentDeleted = async () => {
     try {
       // Fetch updated tweet with comments
@@ -254,10 +255,12 @@ export default function Tweet({
         )}
 
         <div className="flex items-start space-x-4 mb-6">
-          <img
-            src={profilePhoto || defaultAvatar.src}
-            alt={username}
-            className="w-12 h-12 rounded-full object-cover cursor-pointer"
+          <Image
+            src={profilePhoto || defaultAvatar}
+            alt={`${username}'s profile`}
+            width={40}
+            height={40}
+            className="rounded-full cursor-pointer"
             onClick={handleProfileClick}
           />
           <div className="flex flex-col flex-grow">
@@ -318,8 +321,6 @@ export default function Tweet({
                 initialLikes={comment.likes?.length || 0}
                 isLikedByUser={userId ? comment.likes?.includes(userId) : false}
                 profilePhoto={comment.author?.profilePhoto}
-                userId={userId}
-                tweetId={tweetId}
                 onCommentDeleted={handleCommentDeleted}
               />
             ))}

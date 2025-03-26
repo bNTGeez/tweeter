@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connectDB } from "@/backend/utils/mongoose";
 import User from "@/backend/models/user.model";
 import Tweet from "@/backend/models/tweet.model";
@@ -6,15 +6,26 @@ import { currentUser } from "@clerk/nextjs/server";
 import { clerkClient } from "@clerk/clerk-sdk-node";
 import Comment from "@/backend/models/comment.model";
 
+interface CommentType {
+  _id: string;
+  content: string;
+  author: {
+    username: string;
+    profilePhoto?: string;
+  };
+  createdAt: string;
+  likes: string[];
+  toObject: () => CommentType;
+}
+
 export const runtime = "nodejs";
 
 export async function GET(
-  req: NextRequest,
+  req: Request,
   context: { params: { username: string } }
 ) {
   try {
     await connectDB();
-    const params = await context.params;
     const clerkUser = await currentUser();
     let userId = null;
 
@@ -23,7 +34,9 @@ export async function GET(
       userId = user?._id;
     }
 
-    const user = await User.findOne({ username: params.username })
+    const params = await context.params;
+    const username = params.username;
+    const user = await User.findOne({ username })
       .populate({
         path: "followers",
         select: "username profilePhoto",
@@ -56,13 +69,13 @@ export async function GET(
     const tweetsWithLikeInfo = tweets.map((tweet) => ({
       ...tweet.toObject(),
       isLikedByUser: userId
-        ? tweet.likes.some((id: String) => id.toString() === userId.toString())
+        ? tweet.likes.some((id: string) => id.toString() === userId.toString())
         : false,
-      comments: tweet.comments.map((comment: any) => ({
+      comments: tweet.comments.map((comment: CommentType) => ({
         ...comment.toObject(),
         isLikedByUser: userId
           ? comment.likes.some(
-              (id: String) => id.toString() === userId.toString()
+              (id: string) => id.toString() === userId.toString()
             )
           : false,
       })),
@@ -75,7 +88,7 @@ export async function GET(
       },
       { status: 200 }
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch user" },
       { status: 500 }
@@ -83,10 +96,7 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  req: NextRequest,
-  context: { params: { username: string } }
-) {
+export async function PUT(req: Request) {
   try {
     await connectDB();
     const clerkUser = await currentUser();
@@ -176,8 +186,8 @@ export async function PUT(
       });
 
     return NextResponse.json({ user: updatedUser }, { status: 200 });
-  } catch (error) {
-    console.error("Error updating profile:", error);
+  } catch {
+    console.error("Error updating profile:");
     return NextResponse.json(
       { error: "Failed to update profile" },
       { status: 500 }

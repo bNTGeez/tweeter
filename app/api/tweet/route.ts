@@ -1,10 +1,10 @@
 import Tweet from "@/backend/models/tweet.model";
 import User from "@/backend/models/user.model";
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { connectDB } from "@/backend/utils/mongoose";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     await connectDB();
     const clerkUser = await currentUser();

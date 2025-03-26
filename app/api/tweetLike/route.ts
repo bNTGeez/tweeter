@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     if (liked) {
       // if liked remove user id
       tweet.likes = tweet.likes.filter(
-        (id: String) => id.toString() !== user._id.toString()
+        (id: string) => id.toString() !== user._id.toString()
       );
     } else {
       // if not liked add user id
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       liked: !liked,
       likesCount: tweet.likes.length,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         error: "Server Error",
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     await connectDB();
     const clerkUser = await currentUser();
@@ -80,13 +80,13 @@ export async function GET(req: NextRequest) {
     const tweetsWithLikeInfo = tweets.map((tweet) => ({
       ...tweet.toObject(),
       isLikedByUser: userId
-        ? tweet.likes.some((id: String) => id.toString() === userId.toString())
+        ? tweet.likes.some((id: string) => id.toString() === userId.toString())
         : false,
       likesCount: tweet.likes.length,
     }));
 
     return NextResponse.json({ tweets: tweetsWithLikeInfo }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         error: "Failed to fetch tweets",

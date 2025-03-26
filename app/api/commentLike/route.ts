@@ -3,6 +3,20 @@ import { connectDB } from "@/backend/utils/mongoose";
 import Comment from "@/backend/models/comment.model";
 import User from "@/backend/models/user.model";
 import { currentUser } from "@clerk/nextjs/server";
+import { Types } from "mongoose";
+
+interface CommentWithLikeInfo {
+  _id: Types.ObjectId;
+  content: string;
+  author: {
+    username: string;
+    profilePhoto?: string;
+  };
+  likes: Types.ObjectId[];
+  createdAt: Date;
+  isLikedByUser: boolean;
+  likesCount: number;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,7 +35,10 @@ export async function POST(req: NextRequest) {
 
     const { commentId } = await req.json();
     if (!commentId) {
-      return NextResponse.json({ error: "no Comment ID found" }, { status: 400 });
+      return NextResponse.json(
+        { error: "no Comment ID found" },
+        { status: 400 }
+      );
     }
 
     const comment = await Comment.findById(commentId);
@@ -34,7 +51,7 @@ export async function POST(req: NextRequest) {
     if (liked) {
       // if liked remove user id
       comment.likes = comment.likes.filter(
-        (id: String) => id.toString() !== user._id.toString()
+        (id: Types.ObjectId) => id.toString() !== user._id.toString()
       );
     } else {
       // if not liked add user id
@@ -48,7 +65,8 @@ export async function POST(req: NextRequest) {
       liked: !liked,
       likesCount: comment.likes.length,
     });
-  } catch (error) {
+  } catch (err) {
+    console.error("Error in comment like:", err);
     return NextResponse.json(
       {
         error: "Server Error",
@@ -60,7 +78,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     await connectDB();
     const clerkUser = await currentUser();
@@ -77,16 +95,21 @@ export async function GET(req: NextRequest) {
       })
       .sort({ createdAt: -1 });
 
-    const commentsWithLikeInfo = comments.map((comment: any) => ({
-      ...comment.toObject(),
-      isLikedByUser: userId
-        ? comment.likes.some((id: String) => id.toString() === userId.toString())
-        : false,
-      likesCount: comment.likes.length,
-    }));
+    const commentsWithLikeInfo: CommentWithLikeInfo[] = comments.map(
+      (comment) => ({
+        ...comment.toObject(),
+        isLikedByUser: userId
+          ? comment.likes.some(
+              (id: Types.ObjectId) => id.toString() === userId.toString()
+            )
+          : false,
+        likesCount: comment.likes.length,
+      })
+    );
 
     return NextResponse.json({ tweets: commentsWithLikeInfo }, { status: 200 });
-  } catch (error) {
+  } catch (err) {
+    console.error("Error fetching comments:", err);
     return NextResponse.json(
       {
         error: "Failed to fetch comments",

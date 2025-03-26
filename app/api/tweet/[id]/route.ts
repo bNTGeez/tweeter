@@ -1,25 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connectDB } from "@/backend/utils/mongoose";
 import Tweet from "@/backend/models/tweet.model";
 import { currentUser } from "@clerk/nextjs/server";
 import User from "@/backend/models/user.model";
 
-export const runtime = "nodejs"; // force Node.js runtime (not Edge)
+export const runtime = "nodejs";
+
+// Define a type for comments
+interface CommentType {
+  _id: string;
+  content: string;
+  author: {
+    username: string;
+    profilePhoto?: string;
+  };
+  likes: string[];
+  createdAt: string;
+  toObject: () => CommentType;
+}
 
 export async function GET(
-  request: NextRequest,
+  request: Request,
   context: { params: { id: string } }
 ) {
   try {
     await connectDB();
+
     const params = await context.params;
     const id = params.id;
+
     const clerkUser = await currentUser();
-    let userId = null;
+    let userId: string | null = null;
 
     if (clerkUser) {
       const user = await User.findOne({ clerkId: clerkUser.id });
-      userId = user?._id;
+      userId = user?._id.toString() || null;
     }
 
     const tweet = await Tweet.findById(id)
@@ -39,17 +54,16 @@ export async function GET(
       return NextResponse.json({ error: "Tweet not found" }, { status: 404 });
     }
 
+    // Example of adding "isLikedByUser" for the tweet and comments:
     const tweetWithLikeInfo = {
       ...tweet.toObject(),
       isLikedByUser: userId
-        ? tweet.likes.some((id: String) => id.toString() === userId.toString())
+        ? tweet.likes.some((likeId: string) => likeId === userId)
         : false,
-      comments: tweet.comments.map((comment: any) => ({
+      comments: tweet.comments.map((comment: CommentType) => ({
         ...comment.toObject(),
         isLikedByUser: userId
-          ? comment.likes.some(
-              (id: String) => id.toString() === userId.toString()
-            )
+          ? comment.likes.some((likeId: string) => likeId === userId)
           : false,
       })),
     };
@@ -65,12 +79,14 @@ export async function GET(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  request: Request,
   context: { params: { id: string } }
 ) {
   try {
     await connectDB();
     const clerkUser = await currentUser();
+
+    // Await the entire context.params object
     const params = await context.params;
     const id = params.id;
 
@@ -88,12 +104,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Tweet not found" }, { status: 404 });
     }
 
+    // Check if the user is the owner of the tweet
     if (tweet.author.toString() !== user._id.toString()) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await Tweet.findByIdAndDelete(id);
-
     return NextResponse.json(
       { message: "Tweet deleted successfully" },
       { status: 200 }
