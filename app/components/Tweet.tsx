@@ -73,10 +73,14 @@ export default function Tweet({
   // Check if this is the current user's tweet
   const isCurrentUserTweet = currentUser?.username === username;
 
+  // Format date immediately instead of using state
+  const formattedDate = format(new Date(createdAt), "h:mm a · MMM d, yyyy");
+
+  // Update likes and isLiked when props change
   useEffect(() => {
-    setIsLiked(isLikedByUser);
     setLikes(initialLikes);
-  }, [isLikedByUser, initialLikes]);
+    setIsLiked(isLikedByUser);
+  }, [initialLikes, isLikedByUser]);
 
   // Add click outside listener to close dropdown
   useEffect(() => {
@@ -101,10 +105,6 @@ export default function Tweet({
       fetchComments();
     }
   }, [showComments, tweetId]);
-
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "h:mm a · MMM d, yyyy");
-  };
 
   const handleDelete = async () => {
     setDeleteError("");
@@ -219,6 +219,7 @@ export default function Tweet({
       <div
         className="bg-white p-8 w-full relative hover:bg-gray-50 transition-colors duration-200"
         onClick={handleTweet}
+        suppressHydrationWarning
       >
         {isCurrentUserTweet && (
           <div ref={dropdownRef} className="absolute top-8 right-8">
@@ -293,8 +294,8 @@ export default function Tweet({
             </button>
             <span className="text-gray-500">{likes}</span>
           </div>
-          <span className="text-sm text-slate-500">
-            {formatDate(createdAt)}
+          <span className="text-sm text-slate-500" suppressHydrationWarning>
+            {formattedDate}
           </span>
         </div>
 

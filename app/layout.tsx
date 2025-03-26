@@ -7,6 +7,15 @@ import {
 } from "@clerk/nextjs";
 import "./globals.css";
 import Footer from "@/app/components/Footer";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Tweeter",
+  description: "A Twitter clone built with Next.js",
+};
 
 export default function RootLayout({
   children,
@@ -16,7 +25,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body>
+        <body className={inter.className} suppressHydrationWarning>
           <main>{children}</main>
           <Footer />
         </body>

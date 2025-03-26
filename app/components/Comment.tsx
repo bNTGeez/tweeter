@@ -44,10 +44,15 @@ export default function Comment({
   const [showDropdown, setShowDropdown] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [formattedDate, setFormattedDate] = useState("");
   const router = useRouter();
   const { user, isSignedIn } = useUser();
   const { requireAuth } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setFormattedDate(format(new Date(createdAt), "h:mm a · MMM d, yyyy"));
+  }, [createdAt]);
 
   useEffect(() => {
     setIsLiked(isLikedByUser);
@@ -71,10 +76,6 @@ export default function Comment({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showDropdown]);
-
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "h:mm a · MMM d, yyyy");
-  };
 
   const handleDelete = async () => {
     setDeleteError("");
@@ -200,7 +201,7 @@ export default function Comment({
           </button>
           <span>{likes}</span>
         </div>
-        <span className="text-sm text-slate-500">{formatDate(createdAt)}</span>
+        <span className="text-sm text-slate-500">{formattedDate}</span>
       </div>
 
       {/* Delete Dialog */}

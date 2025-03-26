@@ -12,6 +12,7 @@ interface UserContentProps {
   fetchTweets: () => Promise<void>;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  isLoading: boolean;
 }
 
 function UserContent({
@@ -19,14 +20,11 @@ function UserContent({
   fetchTweets,
   activeTab,
   setActiveTab,
+  isLoading,
 }: UserContentProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useUser();
   const router = useRouter();
-
-  useEffect(() => {
-    fetchTweets();
-  }, [activeTab, fetchTweets]);
 
   return (
     <div className="flex flex-col items-center p-8 h-screen bg-slate-100 overflow-auto">
@@ -59,6 +57,7 @@ function UserContent({
           onClick={() => {
             if (!user) {
               router.push("/auth/sign-in");
+              return;
             }
             setIsModalOpen(true);
           }}
@@ -72,23 +71,36 @@ function UserContent({
           onTweetCreated={fetchTweets}
         />
 
-        <div className="space-y-6">
-          {tweets.map((tweet: any) => (
-            <Tweet
-              key={tweet._id}
-              tweetId={tweet._id}
-              tweet={tweet.content}
-              username={tweet.author?.username || "Unknown User"}
-              createdAt={tweet.createdAt}
-              initialLikes={tweet.likes?.length || 0}
-              initialComment={tweet.comments?.length || 0}
-              isLikedByUser={tweet.isLikedByUser}
-              userId={tweet.author?._id}
-              profilePhoto={tweet.author?.profilePhoto}
-              onTweetDeleted={fetchTweets}
-              onCommentDeleted={fetchTweets}
-            />
-          ))}
+        <div className="space-y-6" suppressHydrationWarning>
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <p className="mt-2 text-gray-500">Loading tweets...</p>
+            </div>
+          ) : tweets.length === 0 ? (
+            <div className="text-center py-4 text-gray-500">
+              {activeTab === "following"
+                ? "No tweets from people you follow yet"
+                : "No tweets yet"}
+            </div>
+          ) : (
+            tweets.map((tweet: any) => (
+              <Tweet
+                key={tweet._id}
+                tweetId={tweet._id}
+                tweet={tweet.content}
+                username={tweet.author?.username || "Unknown User"}
+                createdAt={tweet.createdAt}
+                initialLikes={tweet.likes?.length || 0}
+                initialComment={tweet.comments?.length || 0}
+                isLikedByUser={tweet.isLikedByUser}
+                userId={tweet.author?._id}
+                profilePhoto={tweet.author?.profilePhoto}
+                onTweetDeleted={fetchTweets}
+                onCommentDeleted={fetchTweets}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -98,33 +110,52 @@ function UserContent({
 export default function HomePage() {
   const [tweets, setTweets] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("feed");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchTweets = async () => {
+  const fetchTweets = useCallback(async () => {
     try {
+      setIsLoading(true);
+      setError(null);
       const endpoint =
         activeTab === "feed" ? "/api/tweetLike" : "/api/tweet/following";
       const response = await fetch(endpoint);
+      if (!response.ok) {
+        throw new Error("Failed to fetch tweets");
+      }
       const data = await response.json();
       setTweets(data.tweets || []);
     } catch (error) {
       console.error("Error fetching tweets:", error);
+      setError("Failed to load tweets. Please try again.");
       setTweets([]);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [activeTab]);
 
-  const memoizedFetchTweets = useCallback(fetchTweets, [activeTab]);
+  // Initial fetch
+  useEffect(() => {
+    fetchTweets();
+  }, [fetchTweets]);
+
+  // Handle tab changes
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+  };
 
   return (
     <div className="flex min-h-screen">
       <div>
-        <Sidebar onTweetCreated={memoizedFetchTweets} />
+        <Sidebar onTweetCreated={fetchTweets} />
       </div>
       <main className="flex-1">
         <UserContent
           tweets={tweets}
-          fetchTweets={memoizedFetchTweets}
+          fetchTweets={fetchTweets}
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={handleTabChange}
+          isLoading={isLoading}
         />
       </main>
     </div>
