@@ -1,14 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/backend/utils/mongoose";
 import User from "@/backend/models/user.model";
 import { currentUser } from "@clerk/nextjs/server";
 
 export const runtime = "nodejs";
 
-export async function POST(
-  req: Request,
-  context: { params: { username: string } }
-) {
+export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const clerkUser = await currentUser();
@@ -23,9 +20,8 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-
-    const params = await context.params;
-    const username = params.username;
+    const pathParts = req.nextUrl.pathname.split("/");
+    const username = pathParts[pathParts.length - 2]; // Get the username from the path
     const targetUser = await User.findOne({ username });
 
     if (!targetUser) {

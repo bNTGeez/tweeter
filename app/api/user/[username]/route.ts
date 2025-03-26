@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/backend/utils/mongoose";
 import User from "@/backend/models/user.model";
 import Tweet from "@/backend/models/tweet.model";
@@ -20,10 +20,7 @@ interface CommentType {
 
 export const runtime = "nodejs";
 
-export async function GET(
-  req: Request,
-  context: { params: { username: string } }
-) {
+export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const clerkUser = await currentUser();
@@ -34,8 +31,7 @@ export async function GET(
       userId = user?._id;
     }
 
-    const params = await context.params;
-    const username = params.username;
+    const username = req.nextUrl.pathname.split("/").pop();
     const user = await User.findOne({ username })
       .populate({
         path: "followers",
@@ -96,7 +92,7 @@ export async function GET(
   }
 }
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
   try {
     await connectDB();
     const clerkUser = await currentUser();
