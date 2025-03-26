@@ -24,7 +24,7 @@ interface CommentProps {
   profilePhoto?: string;
   onCommentDeleted?: () => void;
   tweetId?: string;
-  userId?: string;
+  userId?: string | null;
 }
 
 export default function Comment({
@@ -79,7 +79,7 @@ export default function Comment({
   const handleDelete = async () => {
     setDeleteError("");
     try {
-      const response = await fetch(`/api/comment/${commentId}`, {
+      const response = await fetch(`/api/comments?commentId=${commentId}`, {
         method: "DELETE",
       });
 
@@ -132,7 +132,7 @@ export default function Comment({
   const isCurrentUserComment = isSignedIn && user?.username === username;
 
   return (
-    <div className="bg-white p-6 w-full relative">
+    <div className="bg-white p-6 w-full relative hover:bg-gray-50 transition-colors duration-200">
       {isCurrentUserComment && (
         <div ref={dropdownRef} className="absolute top-6 right-6">
           <button

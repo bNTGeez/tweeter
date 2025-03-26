@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/app/components/Sidebar";
 import Tweet from "@/app/components/Tweet";
 import Footer from "@/app/components/Footer";
@@ -7,29 +7,26 @@ import CreateTweet from "../components/CreateTweet";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
-function UserContent() {
-  const [tweets, setTweets] = useState([]);
+interface UserContentProps {
+  tweets: any[];
+  fetchTweets: () => Promise<void>;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+}
+
+function UserContent({
+  tweets,
+  fetchTweets,
+  activeTab,
+  setActiveTab,
+}: UserContentProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("feed");
   const { user } = useUser();
   const router = useRouter();
 
-  const fetchTweets = async () => {
-    try {
-      const endpoint =
-        activeTab === "feed" ? "/api/tweetLike" : "/api/tweet/following";
-      const response = await fetch(endpoint);
-      const data = await response.json();
-      setTweets(data.tweets || []);
-    } catch (error) {
-      console.error("Error fetching tweets:", error);
-      setTweets([]);
-    }
-  };
-
   useEffect(() => {
     fetchTweets();
-  }, [activeTab]);
+  }, [activeTab, fetchTweets]);
 
   return (
     <div className="flex flex-col items-center p-8 h-screen bg-slate-100 overflow-auto">
@@ -88,6 +85,8 @@ function UserContent() {
               isLikedByUser={tweet.isLikedByUser}
               userId={tweet.author?._id}
               profilePhoto={tweet.author?.profilePhoto}
+              onTweetDeleted={fetchTweets}
+              onCommentDeleted={fetchTweets}
             />
           ))}
         </div>
@@ -97,13 +96,36 @@ function UserContent() {
 }
 
 export default function HomePage() {
+  const [tweets, setTweets] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("feed");
+
+  const fetchTweets = async () => {
+    try {
+      const endpoint =
+        activeTab === "feed" ? "/api/tweetLike" : "/api/tweet/following";
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      setTweets(data.tweets || []);
+    } catch (error) {
+      console.error("Error fetching tweets:", error);
+      setTweets([]);
+    }
+  };
+
+  const memoizedFetchTweets = useCallback(fetchTweets, [activeTab]);
+
   return (
     <div className="flex min-h-screen">
       <div>
-        <Sidebar />
+        <Sidebar onTweetCreated={memoizedFetchTweets} />
       </div>
       <main className="flex-1">
-        <UserContent />
+        <UserContent
+          tweets={tweets}
+          fetchTweets={memoizedFetchTweets}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
       </main>
     </div>
   );

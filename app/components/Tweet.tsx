@@ -25,9 +25,10 @@ interface TweetProps {
   initialLikes: number;
   initialComment: number;
   isLikedByUser: boolean;
-  userId?: string;
+  userId?: string | null;
   profilePhoto?: string;
   onTweetDeleted?: () => void;
+  onCommentDeleted?: () => void;
 }
 
 interface CommentType {
@@ -53,6 +54,7 @@ export default function Tweet({
   userId,
   profilePhoto,
   onTweetDeleted,
+  onCommentDeleted,
 }: TweetProps) {
   const [likes, setLikes] = useState(initialLikes);
   const [isLiked, setIsLiked] = useState(isLikedByUser);
@@ -124,7 +126,7 @@ export default function Tweet({
       if (pathParts.includes("status")) {
         router.push("/home");
       } else {
-        // refreshes tweet list
+        // Call the onTweetDeleted callback to refresh the tweets
         onTweetDeleted?.();
       }
     } catch (error) {
@@ -197,14 +199,27 @@ export default function Tweet({
     }
   };
 
-  const handleCommentDeleted = () => {
-    fetchComments();
-    setCommentCount((prev) => Math.max(prev - 1, 0));
+  const handleCommentDeleted = async () => {
+    try {
+      // Fetch updated tweet with comments
+      const response = await fetch(`/api/tweet/${tweetId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data.tweet.comments);
+        setCommentCount(data.tweet.comments.length);
+      }
+      onCommentDeleted?.();
+    } catch (error) {
+      console.error("Error refreshing comments:", error);
+    }
   };
 
   return (
     <>
-      <div className="bg-white p-8 w-full relative" onClick={handleTweet}>
+      <div
+        className="bg-white p-8 w-full relative hover:bg-gray-50 transition-colors duration-200"
+        onClick={handleTweet}
+      >
         {isCurrentUserTweet && (
           <div ref={dropdownRef} className="absolute top-8 right-8">
             <button
@@ -291,7 +306,7 @@ export default function Tweet({
         />
 
         {showComments && (
-          <div className="mt-4">
+          <div className="mt-4" onClick={(e) => e.stopPropagation()}>
             {comments.map((comment: CommentType) => (
               <Comment
                 key={comment._id}

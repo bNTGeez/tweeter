@@ -40,7 +40,9 @@ const CreateTweet = ({
       if (response.ok) {
         setTweet("");
         onClose();
-        onTweetCreated?.();
+        if (onTweetCreated) {
+          onTweetCreated();
+        }
       } else {
         setError(data.error || "Failed to create tweet");
       }

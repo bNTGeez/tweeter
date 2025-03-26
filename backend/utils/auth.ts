@@ -20,7 +20,7 @@ export function useAuth() {
 
     // If not signed in, redirect to sign-in page
     if (!isSignedIn) {
-      router.push("/sign-in");
+      router.push("/auth/sign-in");
       return false;
     }
 

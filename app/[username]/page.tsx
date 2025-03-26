@@ -5,7 +5,13 @@ import Sidebar from "@/app/components/Sidebar";
 import Tweet from "@/app/components/Tweet";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import defaultAvatar from "@/public/default-avatar.png";
-import { Dialog, DialogTitle, DialogContent } from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+} from "@mui/material";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 
@@ -54,14 +60,64 @@ export default function UserProfile() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const [showEditProfileDialog, setShowEditProfileDialog] = useState(false);
+  const [editForm, setEditForm] = useState({
+    username: "",
+    bio: "",
+  });
+  const [editError, setEditError] = useState("");
+
+  const handleEditProfile = async () => {
+    try {
+      const response = await fetch(`/api/user/${username}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editForm),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setEditError(data.error || "Failed to update profile");
+        return;
+      }
+
+      // If username was changed, redirect to the new profile
+      if (data.user.username !== username) {
+        // Update the Clerk user's username
+        if (currentUser) {
+          await currentUser.update({ username: data.user.username });
+        }
+        router.push(`/${data.user.username}`);
+      } else {
+        // If only bio was changed, refresh the current page
+        await fetchUserProfile();
+        setShowEditProfileDialog(false);
+        setEditError("");
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      setEditError("Failed to update profile");
+    }
+  };
 
   const fetchUserProfile = async () => {
     try {
+      setLoading(true);
       const userResponse = await fetch(`/api/user/${username}`);
       const userData = await userResponse.json();
 
       if (userResponse.ok) {
         setProfileUser(userData.user);
+
+        // Check if this is the current user's profile
+        if (isSignedIn && currentUser && currentUser.username === username) {
+          setIsFollowing(false); // Don't show follow button for own profile
+          return;
+        }
 
         // Check if the current user is following this profile
         if (isSignedIn && currentUser) {
@@ -100,11 +156,12 @@ export default function UserProfile() {
         }
       } else {
         setError(userData.error || "User not found");
-        return;
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
       setError("Failed to fetch user profile");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -153,13 +210,13 @@ export default function UserProfile() {
 
   const fetchTweets = async () => {
     try {
+      setLoading(true);
       const response = await fetch(`/api/user/${username}`);
-      const data = await response.json();
-
       if (response.ok) {
-        setTweets(data.tweets || []);
+        const data = await response.json();
+        setTweets(data.tweets);
       } else {
-        setError(data.error || "Failed to fetch tweets");
+        setError("Failed to fetch tweets");
       }
     } catch (error) {
       console.error("Error fetching tweets:", error);
@@ -167,6 +224,10 @@ export default function UserProfile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTweetDeleted = () => {
+    fetchTweets(); // Refresh tweets when one is deleted
   };
 
   const navigateToProfile = (profileUsername: string) => {
@@ -177,14 +238,27 @@ export default function UserProfile() {
 
   useEffect(() => {
     if (username) {
+      // Set isFollowing to false immediately if it's your own profile
+      if (isSignedIn && currentUser?.username === username) {
+        setIsFollowing(false);
+      }
       fetchUserProfile();
       fetchTweets();
     }
   }, [username, isSignedIn, currentUser]);
 
+  useEffect(() => {
+    if (showEditProfileDialog && profileUser) {
+      setEditForm({
+        username: profileUser.username,
+        bio: profileUser.bio || "",
+      });
+    }
+  }, [showEditProfileDialog, profileUser]);
+
   return (
     <div className="flex flex-row h-screen overflow-hidden">
-      <Sidebar />
+      <Sidebar onTweetCreated={fetchTweets} />
       <div className="flex-1 overflow-y-auto">
         <div className="w-[800px] px-4 mx-auto py-4">
           <div className="border border-gray-200">
@@ -250,15 +324,79 @@ export default function UserProfile() {
                       </div>
                     </div>
                     {isSignedIn && currentUser?.username === username && (
-                      <SignOutButton>
-                        <button className="px-4 py-1.5 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600">
-                          Sign Out
-                        </button>
-                      </SignOutButton>
+                      <>
+                        <div className="flex gap-5">
+                          <button
+                            onClick={() => setShowEditProfileDialog(true)}
+                            className="px-4 py-1.5 rounded-full text-sm font-semibold bg-black text-white hover:bg-gray-800"
+                          >
+                            Edit Profile
+                          </button>
+                          <button
+                            onClick={() => setShowSignOutDialog(true)}
+                            className="px-4 py-1.5 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600"
+                          >
+                            Sign Out
+                          </button>
+                        </div>
+                        <Dialog
+                          open={showSignOutDialog}
+                          onClose={() => setShowSignOutDialog(false)}
+                          maxWidth="sm"
+                          fullWidth
+                          PaperProps={{
+                            sx: {
+                              borderRadius: "16px",
+                              maxHeight: "80vh",
+                              position: "absolute",
+                              top: "10%",
+                              left: "50%",
+                              transform: "translateX(-50%)",
+                            },
+                          }}
+                        >
+                          <DialogTitle className="border-b border-gray-200 pb-4">
+                            <div className="flex items-center justify-between">
+                              <h2 className="text-xl font-bold">Sign Out</h2>
+                              <button
+                                onClick={() => setShowSignOutDialog(false)}
+                                className="p-2 hover:bg-gray-100 rounded-full"
+                              >
+                                <X className="w-5 h-5 text-gray-500" />
+                              </button>
+                            </div>
+                          </DialogTitle>
+                          <DialogContent className="p-6">
+                            <p className="text-gray-700 mb-6">
+                              Are you sure you want to sign out?
+                            </p>
+                            <div className="flex justify-end gap-3">
+                              <button
+                                onClick={() => setShowSignOutDialog(false)}
+                                className="px-4 py-2 rounded-full text-sm font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                Cancel
+                              </button>
+                              <SignOutButton>
+                                <button className="px-4 py-2 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600">
+                                  Sign Out
+                                </button>
+                              </SignOutButton>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </>
                     )}
                   </div>
                   {profileUser?.bio && (
-                    <p className="mt-4 text-gray-700">{profileUser.bio}</p>
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">
+                        Bio
+                      </h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">
+                        {profileUser.bio}
+                      </p>
+                    </div>
                   )}
                 </div>
 
@@ -272,15 +410,15 @@ export default function UserProfile() {
                       {tweets.map((tweet) => (
                         <Tweet
                           key={tweet._id}
-                          tweetId={tweet._id}
                           tweet={tweet.content}
                           username={tweet.author.username}
                           createdAt={tweet.createdAt}
+                          tweetId={tweet._id}
                           initialLikes={tweet.likes.length}
                           initialComment={tweet.comments.length}
                           isLikedByUser={tweet.isLikedByUser}
-                          profilePhoto={tweet.author.profilePhoto}
-                          onTweetDeleted={fetchTweets}
+                          profilePhoto={tweet.author?.profilePhoto}
+                          onTweetDeleted={handleTweetDeleted}
                         />
                       ))}
                     </div>
@@ -397,6 +535,104 @@ export default function UserProfile() {
             ))}
           </div>
         </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showEditProfileDialog}
+        onClose={() => setShowEditProfileDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            maxHeight: "80vh",
+            position: "absolute",
+            top: "10%",
+            left: "50%",
+            transform: "translateX(-50%)",
+          },
+        }}
+      >
+        <DialogTitle className="border-b border-gray-200 pb-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">Edit Profile</h2>
+            <button
+              onClick={() => setShowEditProfileDialog(false)}
+              className="p-2 hover:bg-gray-100 rounded-full"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        </DialogTitle>
+        <DialogContent className="p-6">
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <TextField
+                fullWidth
+                value={editForm.username}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, username: e.target.value })
+                }
+                variant="outlined"
+                size="small"
+                error={!!editError}
+                helperText={editError}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    "&:hover fieldset": {
+                      borderColor: "#000",
+                    },
+                  },
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bio
+              </label>
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                value={editForm.bio}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, bio: e.target.value })
+                }
+                variant="outlined"
+                size="small"
+                placeholder="Tell us about yourself"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    "&:hover fieldset": {
+                      borderColor: "#000",
+                    },
+                  },
+                }}
+              />
+            </div>
+          </div>
+        </DialogContent>
+        <DialogActions className="p-6 pt-0">
+          <div className="flex justify-end gap-3 w-full">
+            <button
+              onClick={() => setShowEditProfileDialog(false)}
+              className="px-4 py-2 rounded-full text-sm font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleEditProfile}
+              className="px-4 py-2 rounded-full text-sm font-semibold bg-black text-white hover:bg-gray-800 transition-colors duration-200"
+            >
+              Save Changes
+            </button>
+          </div>
+        </DialogActions>
       </Dialog>
     </div>
   );

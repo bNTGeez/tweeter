@@ -134,9 +134,12 @@ export async function DELETE(req: NextRequest) {
 
     const user = await User.findOne({ clerkId: clerkUser?.id });
     if (comment.author.toString() != user._id.toString()) {
-      return NextResponse.json({
-        error: "Unauthorized",
-      });
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+        },
+        { status: 401 }
+      );
     }
 
     // remove comment from tweet
@@ -146,6 +149,11 @@ export async function DELETE(req: NextRequest) {
 
     // delete comment
     await Comment.findByIdAndDelete(commentId);
+
+    return NextResponse.json(
+      { message: "Comment deleted successfully" },
+      { status: 200 }
+    );
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to delete comment" },
@@ -176,22 +184,26 @@ export async function PATCH(req: NextRequest) {
 
     const comment = await Comment.findById(commentId);
 
-    if(!comment) {
-      return NextResponse.json({error: "Comment not found"}, {status: 404})
+    if (!comment) {
+      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
 
-    if(comment.author.toString() != user._id.toString()) {
-      return NextResponse.json({error: "Unauthorized"}, {status: 401})
+    if (comment.author.toString() != user._id.toString()) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const updatedComment = await Comment.findByIdAndUpdate(commentId, {
-      content
-    }, {new: true}).populate({
+    const updatedComment = await Comment.findByIdAndUpdate(
+      commentId,
+      {
+        content,
+      },
+      { new: true }
+    ).populate({
       path: "author",
-      select: "username profilePhoto"
+      select: "username profilePhoto",
     });
 
-    return NextResponse.json({comment: updatedComment}, {status: 200})
+    return NextResponse.json({ comment: updatedComment }, { status: 200 });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to edit comment" },

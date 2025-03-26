@@ -7,7 +7,11 @@ import { useUser } from "@clerk/nextjs";
 import CreateTweet from "@/app/components/CreateTweet";
 import Searchbar from "./Searchbar";
 
-export default function Sidebar() {
+interface SidebarProps {
+  onTweetCreated?: () => void;
+}
+
+export default function Sidebar({ onTweetCreated }: SidebarProps) {
   const { isSignedIn, isLoaded, user } = useUser();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -39,6 +43,10 @@ export default function Sidebar() {
     } else {
       router.push("auth/sign-in");
     }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
   };
 
   return (
@@ -81,12 +89,11 @@ export default function Sidebar() {
       <CreateTweet
         isModalOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onTweetCreated={() => {}}
+        onTweetCreated={onTweetCreated}
       />
-      <Searchbar 
+      <Searchbar
         isSearchModalOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
-
       />
     </>
   );
