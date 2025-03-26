@@ -2,13 +2,14 @@ import mongoose from "mongoose";
 
 export const connectDB = async () => {
   if (!process.env.MONGODB_URI) {
-    return console.log("MONGODB_URI not found ");
+    throw new Error("MONGODB_URI not found in environment variables");
   }
 
   try {
     const connect = await mongoose.connect(process.env.MONGODB_URI);
-    console.log(`connected to database ${connect.connection.host}`);
+    console.log(`Connected to database ${connect.connection.host}`);
   } catch (error) {
-    console.log("didn't connect ", error);
+    console.error("Failed to connect to database:", error);
+    throw error;
   }
 };

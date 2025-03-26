@@ -1,41 +1,13 @@
 import Comment from "@/backend/models/comment.model";
-import User from "@/backend/models/user.model";
 import Tweet from "@/backend/models/tweet.model";
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
 import { connectDB } from "@/backend/utils/mongoose";
-import { fetchUser } from "@/backend/controllers/user.controller";
+import { getOrCreateUser } from "@/backend/utils/user";
 
 export async function POST(req: Request) {
   try {
     await connectDB();
-    const clerkUser = await currentUser();
-
-    if (!clerkUser) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
-
-    // Fetch or create user
-    const user = await fetchUser(clerkUser.id, {
-      username:
-        clerkUser.username || `user_${Math.floor(Math.random() * 10000)}`,
-      email: clerkUser.emailAddresses[0]?.emailAddress,
-      profilePhoto: clerkUser.imageUrl,
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          error: "User not found",
-        },
-        { status: 404 }
-      );
-    }
+    const user = await getOrCreateUser();
 
     const { content, tweetId } = await req.json();
 
@@ -64,8 +36,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ comment: populatedComment }, { status: 201 });
-  } catch (err) {
-    console.error("Error creating comment:", err);
+  } catch (error: unknown) {
+    console.error("Error creating comment:", error);
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.json(
       {
         error: "Failed to create comment",
@@ -100,8 +75,8 @@ export async function GET(req: Request) {
       .sort({ createdAt: -1 });
 
     return NextResponse.json({ comments }, { status: 200 });
-  } catch (err) {
-    console.error("Error fetching comments:", err);
+  } catch (error: unknown) {
+    console.error("Error fetching comments:", error);
     return NextResponse.json(
       {
         error: "Failed to fetch comments",
@@ -114,18 +89,7 @@ export async function GET(req: Request) {
 export async function DELETE(req: Request) {
   try {
     await connectDB();
-    const clerkUser = await currentUser();
-
-    if (!clerkUser) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-        },
-        {
-          status: 401,
-        }
-      );
-    }
+    const user = await getOrCreateUser();
 
     const { searchParams } = new URL(req.url);
     const commentId = searchParams.get("commentId");
@@ -150,8 +114,7 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const user = await User.findOne({ clerkId: clerkUser?.id });
-    if (comment.author.toString() != user._id.toString()) {
+    if (comment.author.toString() !== user._id.toString()) {
       return NextResponse.json(
         {
           error: "Unauthorized",
@@ -172,8 +135,11 @@ export async function DELETE(req: Request) {
       { message: "Comment deleted successfully" },
       { status: 200 }
     );
-  } catch (err) {
-    console.error("Error deleting comment:", err);
+  } catch (error: unknown) {
+    console.error("Error deleting comment:", error);
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.json(
       { error: "Failed to delete comment" },
       { status: 500 }
@@ -184,11 +150,7 @@ export async function DELETE(req: Request) {
 export async function PATCH(req: Request) {
   try {
     await connectDB();
-    const clerkUser = await currentUser();
-
-    if (!clerkUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const user = await getOrCreateUser();
 
     const { content, commentId } = await req.json();
 
@@ -199,15 +161,13 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const user = await User.findOne({ clerkId: clerkUser.id });
-
     const comment = await Comment.findById(commentId);
 
     if (!comment) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
 
-    if (comment.author.toString() != user._id.toString()) {
+    if (comment.author.toString() !== user._id.toString()) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -220,8 +180,11 @@ export async function PATCH(req: Request) {
     );
 
     return NextResponse.json({ comment: updatedComment }, { status: 200 });
-  } catch (err) {
-    console.error("Error updating comment:", err);
+  } catch (error: unknown) {
+    console.error("Error updating comment:", error);
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.json(
       { error: "Failed to update comment" },
       { status: 500 }

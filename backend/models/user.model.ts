@@ -4,7 +4,7 @@ interface IUser extends Document {
   clerkId: string;
   username: string;
   email: string;
-  password: string;
+  password?: string;
   profilePhoto?: string;
   bio?: string;
   auth: boolean;

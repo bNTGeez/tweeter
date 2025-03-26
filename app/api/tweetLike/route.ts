@@ -1,22 +1,15 @@
 import { NextResponse, NextRequest } from "next/server";
 import { connectDB } from "@/backend/utils/mongoose";
 import Tweet from "@/backend/models/tweet.model";
-import User from "@/backend/models/user.model";
-import { currentUser } from "@clerk/nextjs/server";
+import { getOrCreateUser } from "@/backend/utils/user";
 
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
-
-    const clerkUser = await currentUser();
-    if (!clerkUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const user = await User.findOne({ clerkId: clerkUser.id });
+    const user = await getOrCreateUser();
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { tweetId } = await req.json();
@@ -48,7 +41,11 @@ export async function POST(req: NextRequest) {
       liked: !liked,
       likesCount: tweet.likes.length,
     });
-  } catch {
+  } catch (error: unknown) {
+    console.error("Error in tweet like:", error);
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.json(
       {
         error: "Server Error",
@@ -63,12 +60,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   try {
     await connectDB();
-    const clerkUser = await currentUser();
-    let userId = null;
-    if (clerkUser) {
-      const user = await User.findOne({ clerkId: clerkUser.id });
-      userId = user?._id;
-    }
+    const user = await getOrCreateUser();
 
     const tweets = await Tweet.find()
       .populate({
@@ -77,16 +69,23 @@ export async function GET() {
       })
       .sort({ createdAt: -1 });
 
+    // Add like information only if user is authenticated
     const tweetsWithLikeInfo = tweets.map((tweet) => ({
       ...tweet.toObject(),
-      isLikedByUser: userId
-        ? tweet.likes.some((id: string) => id.toString() === userId.toString())
+      isLikedByUser: user
+        ? tweet.likes.some(
+            (id: string) => id.toString() === user._id.toString()
+          )
         : false,
       likesCount: tweet.likes.length,
     }));
 
     return NextResponse.json({ tweets: tweetsWithLikeInfo }, { status: 200 });
-  } catch {
+  } catch (error: unknown) {
+    console.error("Error fetching tweets:", error);
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.json(
       {
         error: "Failed to fetch tweets",

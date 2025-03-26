@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/backend/utils/mongoose";
-import { currentUser } from "@clerk/nextjs/server";
 import User from "@/backend/models/user.model";
 import Tweet from "@/backend/models/tweet.model";
+import { getOrCreateUser } from "@/backend/utils/user";
 
 interface TweetType {
   _id: string;
@@ -19,17 +19,8 @@ interface TweetType {
 export async function GET() {
   try {
     await connectDB();
-    const clerkUser = await currentUser();
-    let userId = null;
-
-    if (clerkUser) {
-      const user = await User.findOne({ clerkId: clerkUser.id });
-      userId = user?._id;
-    }
-
-    if (!userId) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    const user = await getOrCreateUser();
+    const userId = user._id;
 
     const userFollowing = await User.findById(userId).select("following");
     const followingIds = userFollowing.following.map((id: string) =>
@@ -54,7 +45,11 @@ export async function GET() {
     }));
 
     return NextResponse.json({ tweets: tweetsWithLikeInfo }, { status: 200 });
-  } catch {
+  } catch (error: unknown) {
+    console.error("Error fetching following tweets:", error);
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.json(
       { error: "Failed to fetch following tweets" },
       { status: 500 }

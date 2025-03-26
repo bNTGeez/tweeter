@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/backend/utils/mongoose";
 import User from "@/backend/models/user.model";
 import Tweet from "@/backend/models/tweet.model";
-import { currentUser } from "@clerk/nextjs/server";
 import { clerkClient } from "@clerk/clerk-sdk-node";
 import Comment from "@/backend/models/comment.model";
+import { getOrCreateUser } from "@/backend/utils/user";
 
 interface CommentType {
   _id: string;
@@ -23,13 +23,8 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
-    const clerkUser = await currentUser();
-    let userId = null;
-
-    if (clerkUser) {
-      const user = await User.findOne({ clerkId: clerkUser.id });
-      userId = user?._id;
-    }
+    const currentUser = await getOrCreateUser();
+    const userId = currentUser._id;
 
     const username = req.nextUrl.pathname.split("/").pop();
     const user = await User.findOne({ username })
@@ -84,7 +79,11 @@ export async function GET(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch {
+  } catch (error: unknown) {
+    console.error("Error fetching user:", error);
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.json(
       { error: "Failed to fetch user" },
       { status: 500 }
@@ -95,19 +94,10 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     await connectDB();
-    const clerkUser = await currentUser();
-
-    if (!clerkUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const user = await User.findOne({ clerkId: clerkUser.id });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    const user = await getOrCreateUser();
 
     const { username, bio } = await req.json();
+    console.log("Updating user with:", { username, bio });
 
     // Check if username is being changed
     if (username !== user.username) {
@@ -122,7 +112,7 @@ export async function PUT(req: NextRequest) {
 
       // Update username in Clerk
       try {
-        await clerkClient.users.updateUser(clerkUser.id, {
+        await clerkClient.users.updateUser(user.clerkId, {
           username: username,
         });
       } catch (error) {
@@ -182,8 +172,11 @@ export async function PUT(req: NextRequest) {
       });
 
     return NextResponse.json({ user: updatedUser }, { status: 200 });
-  } catch {
-    console.error("Error updating profile:");
+  } catch (error: unknown) {
+    console.error("Error updating profile:", error);
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.json(
       { error: "Failed to update profile" },
       { status: 500 }
