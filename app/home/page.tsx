@@ -40,10 +40,10 @@ function UserContent({
   const router = useRouter();
 
   return (
-    <div className="flex flex-col items-center p-8 h-screen bg-slate-100 overflow-auto">
+    <div className="flex flex-col items-center p-4 md:p-8 min-h-screen bg-slate-100 overflow-auto pb-20 md:pb-8">
       <div className="w-full max-w-xl">
         <div className="flex justify-center mb-8">
-          <div className="w-[800px] flex border border-gray-200 rounded-lg overflow-hidden">
+          <div className="w-full md:w-[800px] flex border border-gray-200 rounded-lg overflow-hidden">
             <button
               className={`flex-1 py-3 text-center font-semibold transition-colors relative ${
                 activeTab === "feed"
@@ -144,22 +144,18 @@ export default function HomePage() {
     }
   }, [activeTab]);
 
-  // Initial fetch
   useEffect(() => {
     fetchTweets();
   }, [fetchTweets]);
 
-  // Handle tab changes
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
   };
 
   return (
     <div className="flex min-h-screen">
-      <div>
-        <Sidebar onTweetCreated={fetchTweets} />
-      </div>
-      <main className="flex-1">
+      <Sidebar onTweetCreated={fetchTweets} />
+      <main className="flex-1 md:ml-[250px]">
         <UserContent
           tweets={tweets}
           fetchTweets={fetchTweets}

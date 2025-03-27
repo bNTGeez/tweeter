@@ -281,11 +281,11 @@ export default function UserProfile() {
   }, [showEditProfileDialog, profileUser]);
 
   return (
-    <div className="flex flex-row h-screen overflow-hidden">
+    <div className="flex min-h-screen">
       <Sidebar onTweetCreated={fetchTweets} />
-      <div className="flex-1 overflow-y-auto">
-        <div className="w-[800px] px-4 mx-auto py-4">
-          <div className="border border-gray-200">
+      <div className="flex-1 md:ml-[250px] overflow-y-auto pb-20 md:pb-8">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="bg-white border border-gray-200 rounded-lg">
             <div className="p-4 border-b border-gray-200">
               <h1 className="text-xl font-bold">Profile</h1>
             </div>
@@ -299,24 +299,24 @@ export default function UserProfile() {
             ) : (
               <>
                 <div className="p-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                    <div className="flex items-start gap-4">
                       <Image
                         src={profileUser?.profilePhoto || defaultAvatar}
                         alt={profileUser?.username || "Profile"}
-                        width={150}
-                        height={150}
+                        width={120}
+                        height={120}
                         className="rounded-full"
                       />
                       <div>
-                        <span className="flex items-center gap-4">
+                        <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
                           <h2 className="text-xl font-bold">
                             {profileUser?.username || String(username)}
                           </h2>
                           {isSignedIn && currentUser?.username !== username && (
                             <button
                               onClick={handleFollow}
-                              className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
+                              className={`px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap ${
                                 isFollowing
                                   ? "bg-white border border-gray-300 text-black hover:bg-gray-50"
                                   : "bg-blue-500 text-white hover:bg-blue-600"
@@ -325,8 +325,8 @@ export default function UserProfile() {
                               {isFollowing ? "Following" : "Follow"}
                             </button>
                           )}
-                        </span>
-                        <div className="flex gap-4 text-gray-500">
+                        </div>
+                        <div className="flex items-center gap-4 text-gray-500 mt-2">
                           <span>{tweets.length} tweets</span>
                           <span
                             className="cursor-pointer hover:underline"
@@ -350,68 +350,20 @@ export default function UserProfile() {
                       </div>
                     </div>
                     {isSignedIn && currentUser?.username === username && (
-                      <>
-                        <div className="flex gap-5">
-                          <button
-                            onClick={() => setShowEditProfileDialog(true)}
-                            className="px-4 py-1.5 rounded-full text-sm font-semibold bg-black text-white hover:bg-gray-800"
-                          >
-                            Edit Profile
-                          </button>
-                          <button
-                            onClick={() => setShowSignOutDialog(true)}
-                            className="px-4 py-1.5 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600"
-                          >
-                            Sign Out
-                          </button>
-                        </div>
-                        <Dialog
-                          open={showSignOutDialog}
-                          onClose={() => setShowSignOutDialog(false)}
-                          maxWidth="sm"
-                          fullWidth
-                          PaperProps={{
-                            sx: {
-                              borderRadius: "16px",
-                              maxHeight: "80vh",
-                              position: "absolute",
-                              top: "10%",
-                              left: "50%",
-                              transform: "translateX(-50%)",
-                            },
-                          }}
+                      <div className="flex items-center gap-2 md:gap-5">
+                        <button
+                          onClick={() => setShowEditProfileDialog(true)}
+                          className="px-4 py-1.5 rounded-full text-sm font-semibold bg-black text-white hover:bg-gray-800 whitespace-nowrap"
                         >
-                          <DialogTitle className="border-b border-gray-200 pb-4">
-                            <div className="flex items-center justify-between">
-                              <h2 className="text-xl font-bold">Sign Out</h2>
-                              <button
-                                onClick={() => setShowSignOutDialog(false)}
-                                className="p-2 hover:bg-gray-100 rounded-full"
-                              >
-                                <X className="w-5 h-5 text-gray-500" />
-                              </button>
-                            </div>
-                          </DialogTitle>
-                          <DialogContent className="p-6">
-                            <p className="text-gray-700 mb-6">
-                              Are you sure you want to sign out?
-                            </p>
-                            <div className="flex justify-end gap-3">
-                              <button
-                                onClick={() => setShowSignOutDialog(false)}
-                                className="px-4 py-2 rounded-full text-sm font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                              >
-                                Cancel
-                              </button>
-                              <SignOutButton>
-                                <button className="px-4 py-2 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600">
-                                  Sign Out
-                                </button>
-                              </SignOutButton>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </>
+                          Edit Profile
+                        </button>
+                        <button
+                          onClick={() => setShowSignOutDialog(true)}
+                          className="px-4 py-1.5 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600 whitespace-nowrap"
+                        >
+                          Sign Out
+                        </button>
+                      </div>
                     )}
                   </div>
                   {profileUser?.bio && (
@@ -453,6 +405,7 @@ export default function UserProfile() {
           </div>
         </div>
       </div>
+
       <Dialog
         open={showFollowers}
         onClose={() => setShowFollowers(false)}
@@ -466,6 +419,7 @@ export default function UserProfile() {
             top: "10%",
             left: "50%",
             transform: "translateX(-50%)",
+            margin: "16px",
           },
         }}
       >
@@ -522,6 +476,7 @@ export default function UserProfile() {
             top: "10%",
             left: "50%",
             transform: "translateX(-50%)",
+            margin: "16px",
           },
         }}
       >
@@ -578,6 +533,7 @@ export default function UserProfile() {
             top: "10%",
             left: "50%",
             transform: "translateX(-50%)",
+            margin: "16px",
           },
         }}
       >
@@ -661,6 +617,53 @@ export default function UserProfile() {
             </button>
           </div>
         </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={showSignOutDialog}
+        onClose={() => setShowSignOutDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            maxHeight: "80vh",
+            position: "absolute",
+            top: "10%",
+            left: "50%",
+            transform: "translateX(-50%)",
+          },
+        }}
+      >
+        <DialogTitle className="border-b border-gray-200 pb-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">Sign Out</h2>
+            <button
+              onClick={() => setShowSignOutDialog(false)}
+              className="p-2 hover:bg-gray-100 rounded-full"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        </DialogTitle>
+        <DialogContent className="p-6">
+          <p className="text-gray-700 mb-6">
+            Are you sure you want to sign out?
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setShowSignOutDialog(false)}
+              className="px-4 py-2 rounded-full text-sm font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <SignOutButton>
+              <button className="px-4 py-2 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600">
+                Sign Out
+              </button>
+            </SignOutButton>
+          </div>
+        </DialogContent>
       </Dialog>
     </div>
   );
