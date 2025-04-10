@@ -17,7 +17,7 @@ A modern social media platform built with Next.js, TypeScript, and MongoDB. Twee
 ## Tech Stack
 
 - **Frontend**: Next.js 14, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, MongoDB
+- **Backend**: Next.js API Routes, MongoDB, NodeJS
 - **Authentication**: Clerk
 - **Styling**: Material-UI, Tailwind CSS
 - **Database**: MongoDB with Mongoose
